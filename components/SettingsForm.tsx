@@ -1,6 +1,6 @@
 import React from 'react';
 import { UserSettings } from '../types';
-import { FileText, Coins, Printer, Palette, Sparkles } from 'lucide-react';
+import { FileText, Coins, Printer, Palette, Sparkles, GraduationCap, Banknote } from 'lucide-react';
 
 interface SettingsFormProps {
   settings: UserSettings;
@@ -15,11 +15,18 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
   onGenerate,
   isLoading,
 }) => {
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    
+    // Handle string inputs vs number inputs
+    let newValue: string | number = value;
+    if (['bwPrice', 'colorPrice', 'budget'].includes(name)) {
+        newValue = parseFloat(value) || 0;
+    }
+    
     setSettings((prev) => ({
       ...prev,
-      [name]: name === 'topic' ? value : parseFloat(value) || 0,
+      [name]: newValue,
     }));
   };
 
@@ -33,26 +40,53 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
       </div>
 
       <div className="space-y-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Sujet de l'exposé
-          </label>
-          <div className="relative">
-            <input
-              type="text"
-              name="topic"
-              value={settings.topic}
-              onChange={handleChange}
-              placeholder="Ex: La Révolution Française, Les trous noirs..."
-              className="w-full pl-4 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-gray-50"
-            />
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Sujet de l'exposé
+              </label>
+              <input
+                type="text"
+                name="topic"
+                value={settings.topic}
+                onChange={handleChange}
+                placeholder="Ex: La Révolution Française..."
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-gray-50"
+              />
+            </div>
+            <div>
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                <GraduationCap size={16} /> Niveau scolaire / Classe
+              </label>
+              <input
+                type="text"
+                name="educationLevel"
+                value={settings.educationLevel}
+                onChange={handleChange}
+                placeholder="Ex: CM2, 3ème, Université..."
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-gray-50"
+              />
+            </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="relative group">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="relative group col-span-2 md:col-span-1">
+             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+               <Banknote size={16} /> Devise
+             </label>
+             <input
+                type="text"
+                name="currency"
+                value={settings.currency}
+                onChange={handleChange}
+                placeholder="€, $, etc."
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-center"
+             />
+          </div>
+
+          <div className="relative group col-span-2 md:col-span-1">
             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-              <Printer size={16} /> Prix N&B (€/page)
+              <Printer size={16} /> Prix N&B
             </label>
             <input
               type="number"
@@ -64,9 +98,9 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
             />
           </div>
 
-          <div className="relative group">
+          <div className="relative group col-span-2 md:col-span-1">
             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-              <Palette size={16} /> Prix Couleur (€/page)
+              <Palette size={16} /> Prix Couleur
             </label>
             <input
               type="number"
@@ -78,9 +112,9 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
             />
           </div>
 
-          <div className="relative group">
+          <div className="relative group col-span-2 md:col-span-1">
             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-              <Coins size={16} /> Budget Total (€)
+              <Coins size={16} /> Budget
             </label>
             <input
               type="number"
@@ -88,7 +122,7 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
               name="budget"
               value={settings.budget}
               onChange={handleChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-green-50"
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-green-50 font-semibold text-green-700"
             />
           </div>
         </div>
@@ -108,7 +142,7 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              Analyse du budget & Rédaction...
+              Analyse et Rédaction...
             </>
           ) : (
             <>
@@ -117,9 +151,6 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
             </>
           )}
         </button>
-        <p className="text-xs text-gray-500 text-center mt-2">
-          L'IA adaptera la longueur et le contenu en fonction de votre budget d'impression.
-        </p>
       </div>
     </div>
   );

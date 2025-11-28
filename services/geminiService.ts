@@ -10,16 +10,18 @@ export const generateExpose = async (settings: UserSettings): Promise<ExposeCont
     Tu es un assistant expert pour la rédaction d'exposés scolaires et professionnels.
     
     L'utilisateur souhaite un exposé sur le sujet : "${settings.topic}".
+    Niveau scolaire / d'étude cible : "${settings.educationLevel || "Standard"}". (Adapte le ton, le vocabulaire et la complexité).
     
     Contraintes budgétaires :
-    - Budget total : ${settings.budget} €
-    - Prix impression Noir & Blanc : ${settings.bwPrice} €/page
-    - Prix impression Couleur : ${settings.colorPrice} €/page
+    - Budget total : ${settings.budget} ${settings.currency}
+    - Prix impression Noir & Blanc : ${settings.bwPrice} ${settings.currency}/page
+    - Prix impression Couleur : ${settings.colorPrice} ${settings.currency}/page
     
     Tâche :
-    1. Calcule approximativement combien de pages l'utilisateur peut imprimer avec son budget (en mélangeant N&B et couleur si possible, ou tout N&B si le budget est serré).
+    1. Calcule approximativement combien de pages l'utilisateur peut imprimer avec son budget.
     2. Rédige un exposé complet et structuré qui tient compte de cette contrainte de longueur.
     3. Si le budget est large, propose des sections avec des suggestions visuelles riches (qui nécessitent la couleur). Si le budget est serré, reste concis et focalise sur le texte.
+    4. Fournis une bibliographie pertinente adaptée au niveau scolaire.
     
     Génère la réponse au format JSON strict avec la structure suivante :
     {
@@ -34,6 +36,7 @@ export const generateExpose = async (settings: UserSettings): Promise<ExposeCont
         }
       ],
       "conclusion": "Paragraphe de conclusion",
+      "bibliography": ["Source 1", "Source 2", "Source 3"],
       "estimatedPages": nombre (estimation du nombre de pages A4),
       "recommendation": "Conseil court à l'utilisateur concernant l'impression (ex: 'Vu votre budget, imprimez tout en N&B sauf la page 2')."
     }
@@ -64,10 +67,14 @@ export const generateExpose = async (settings: UserSettings): Promise<ExposeCont
               },
             },
             conclusion: { type: Type.STRING },
+            bibliography: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
+            },
             estimatedPages: { type: Type.NUMBER },
             recommendation: { type: Type.STRING },
           },
-          required: ["title", "introduction", "sections", "conclusion", "estimatedPages", "recommendation"],
+          required: ["title", "introduction", "sections", "conclusion", "bibliography", "estimatedPages", "recommendation"],
         },
       },
     });

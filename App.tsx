@@ -1,13 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SettingsForm } from './components/SettingsForm';
 import { ReportView } from './components/ReportView';
-import { ExposeContent, UserSettings } from './types';
+import { HistoryList } from './components/HistoryList';
+import { ExposeContent, UserSettings, HistoryItem } from './types';
 import { generateExpose } from './services/geminiService';
 import { BookOpen } from 'lucide-react';
 
 export default function App() {
   const [settings, setSettings] = useState<UserSettings>({
     topic: '',
+    educationLevel: '',
+    currency: '€',
     bwPrice: 0.10,
     colorPrice: 0.50,
     budget: 5.00,
@@ -16,6 +19,36 @@ export default function App() {
   const [content, setContent] = useState<ExposeContent | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+
+  // Load history from local storage on mount
+  useEffect(() => {
+    const savedHistory = localStorage.getItem('exposeHistory');
+    if (savedHistory) {
+      try {
+        setHistory(JSON.parse(savedHistory));
+      } catch (e) {
+        console.error("Failed to parse history", e);
+      }
+    }
+  }, []);
+
+  // Save history helper
+  const saveHistory = (newHistory: HistoryItem[]) => {
+    setHistory(newHistory);
+    localStorage.setItem('exposeHistory', JSON.stringify(newHistory));
+  };
+
+  const addToHistory = (settings: UserSettings, content: ExposeContent) => {
+    const newItem: HistoryItem = {
+        id: Date.now().toString(),
+        timestamp: Date.now(),
+        settings: { ...settings }, // Copy settings
+        content: content
+    };
+    const updatedHistory = [newItem, ...history];
+    saveHistory(updatedHistory);
+  };
 
   const handleGenerate = async () => {
     setIsLoading(true);
@@ -25,12 +58,31 @@ export default function App() {
     try {
       const result = await generateExpose(settings);
       setContent(result);
+      addToHistory(settings, result);
     } catch (err) {
       setError("Une erreur est survenue lors de la génération de l'exposé. Veuillez vérifier votre clé API ou réessayer plus tard.");
       console.error(err);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSelectHistory = (item: HistoryItem) => {
+      setSettings(item.settings);
+      setContent(item.content);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDeleteHistory = (id: string, e: React.MouseEvent) => {
+      e.stopPropagation();
+      const updatedHistory = history.filter(item => item.id !== id);
+      saveHistory(updatedHistory);
+  };
+
+  const handleClearHistory = () => {
+      if(window.confirm("Voulez-vous vraiment effacer tout l'historique ?")) {
+        saveHistory([]);
+      }
   };
 
   const resetForm = () => {
@@ -68,7 +120,7 @@ export default function App() {
             <div className="text-center mb-10 max-w-2xl mx-auto">
                 <h2 className="text-4xl font-extrabold text-gray-900 mb-4">Créez des exposés parfaits,<br/><span className="text-blue-600">sans dépasser votre budget.</span></h2>
                 <p className="text-lg text-gray-600">
-                    Entrez votre sujet et vos coûts d'impression. Notre IA rédige le contenu et adapte la longueur pour que vous puissiez imprimer sans surprise.
+                    Entrez votre sujet, votre niveau scolaire et vos coûts d'impression. Notre IA rédige le contenu et adapte la longueur pour que vous puissiez imprimer sans surprise.
                 </p>
             </div>
             
@@ -85,6 +137,13 @@ export default function App() {
                     {error}
                 </div>
             )}
+
+            <HistoryList 
+                history={history} 
+                onSelect={handleSelectHistory} 
+                onClear={handleClearHistory}
+                onDelete={handleDeleteHistory}
+            />
           </div>
         ) : (
           <ReportView content={content} settings={settings} />

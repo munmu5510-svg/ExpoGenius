@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { ExposeContent, UserSettings } from '../types';
-import { Download, Printer, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Download, Printer, AlertTriangle, CheckCircle, Book } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -19,19 +19,20 @@ export const ReportView: React.FC<ReportViewProps> = ({ content, settings }) => 
   const handleDownloadPDF = async () => {
     if (!reportRef.current) return;
 
-    // Use html2canvas to capture the element
     try {
-        // Temporarily remove shadow and scaling for cleaner capture
         const element = reportRef.current;
+        const originalTransform = element.style.transform;
         element.style.transform = 'none';
         
         const canvas = await html2canvas(element, {
-            scale: 2, // Higher resolution
+            scale: 2,
             useCORS: true,
             logging: false,
             windowWidth: element.scrollWidth,
             windowHeight: element.scrollHeight
         });
+        
+        element.style.transform = originalTransform;
 
         const imgData = canvas.toDataURL('image/png');
         const pdf = new jsPDF({
@@ -40,8 +41,8 @@ export const ReportView: React.FC<ReportViewProps> = ({ content, settings }) => 
             format: 'a4',
         });
 
-        const imgWidth = 210; // A4 width in mm
-        const pageHeight = 297; // A4 height in mm
+        const imgWidth = 210;
+        const pageHeight = 297;
         const imgHeight = (canvas.height * imgWidth) / canvas.width;
         let heightLeft = imgHeight;
         let position = 0;
@@ -62,17 +63,6 @@ export const ReportView: React.FC<ReportViewProps> = ({ content, settings }) => 
         alert("Erreur lors de la génération du PDF. Essayez l'option Imprimer.");
     }
   };
-
-  // Cost calculation
-  // Rough estimate: Assume visual sections take more space or specific color cost
-  const totalSections = content.sections.length;
-  // Let's assume Introduction + Conclusion = 1 page.
-  // Each section = 0.5 to 1 page depending on content length.
-  // The AI gave us an estimate, let's use it for the "Total Pages".
-  
-  // Calculate cost based on AI recommendation or general assumption
-  // We will assume 80% pages are BW, 20% Color if mixed, or follow prompts.
-  // For simplicity, let's calculate a "Scenario" cost.
   
   const estimatedCost = (content.estimatedPages * settings.bwPrice).toFixed(2);
   const isOverBudget = parseFloat(estimatedCost) > settings.budget;
@@ -88,7 +78,7 @@ export const ReportView: React.FC<ReportViewProps> = ({ content, settings }) => 
             <div>
                 <p className="text-sm text-gray-500">Coût estimé (Tout N&B)</p>
                 <p className={`font-bold text-lg ${isOverBudget ? 'text-red-600' : 'text-green-600'}`}>
-                    ~{estimatedCost} € <span className="text-xs text-gray-400 font-normal">/ {settings.budget} € budget</span>
+                    ~{estimatedCost} {settings.currency} <span className="text-xs text-gray-400 font-normal">/ {settings.budget} {settings.currency} budget</span>
                 </p>
             </div>
         </div>
@@ -123,12 +113,16 @@ export const ReportView: React.FC<ReportViewProps> = ({ content, settings }) => 
       <div 
         ref={reportRef}
         className="bg-white shadow-2xl p-12 min-h-[29.7cm] text-gray-800 print:shadow-none print:p-0 print:w-full"
-        style={{ width: '100%' }} // Ensure full width for capture
+        style={{ width: '100%' }}
       >
         {/* Header */}
         <div className="border-b-2 border-gray-800 pb-6 mb-8 text-center">
             <h1 className="text-4xl font-extrabold uppercase tracking-tight mb-2">{content.title}</h1>
-            <p className="text-gray-500 italic">Généré pour le sujet : {settings.topic}</p>
+            <div className="flex justify-center gap-4 text-gray-500 italic text-sm">
+                <span>Sujet : {settings.topic}</span>
+                <span>•</span>
+                <span>Niveau : {settings.educationLevel || "Non spécifié"}</span>
+            </div>
         </div>
 
         {/* Introduction */}
@@ -155,7 +149,7 @@ export const ReportView: React.FC<ReportViewProps> = ({ content, settings }) => 
                     
                     {/* Visual Placeholder */}
                     {section.visualSuggestion && (
-                        <div className={`my-4 p-6 rounded-lg border-2 border-dashed flex flex-col items-center justify-center text-center transition-colors ${section.isColor ? 'border-indigo-200 bg-indigo-50' : 'border-gray-300 bg-gray-50'}`}>
+                        <div className={`my-4 p-6 rounded-lg border-2 border-dashed flex flex-col items-center justify-center text-center transition-colors break-inside-avoid ${section.isColor ? 'border-indigo-200 bg-indigo-50' : 'border-gray-300 bg-gray-50'}`}>
                             <div className="mb-2 opacity-50">
                                 {section.isColor ? (
                                     <svg className="w-12 h-12 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
@@ -176,10 +170,24 @@ export const ReportView: React.FC<ReportViewProps> = ({ content, settings }) => 
             <h3 className="text-xl font-bold border-l-4 border-green-600 pl-3 mb-3 text-gray-900">Conclusion</h3>
             <p className="text-justify leading-relaxed text-gray-700 whitespace-pre-wrap">{content.conclusion}</p>
         </div>
+
+        {/* Bibliography */}
+        {content.bibliography && content.bibliography.length > 0 && (
+            <div className="mt-8 pt-6 border-t border-gray-200 page-break-inside-avoid">
+                <h3 className="text-xl font-bold border-l-4 border-gray-600 pl-3 mb-3 text-gray-900 flex items-center gap-2">
+                    <Book size={20} /> Bibliographie
+                </h3>
+                <ul className="list-disc pl-5 space-y-2 text-gray-700 text-sm">
+                    {content.bibliography.map((source, index) => (
+                        <li key={index} className="leading-relaxed">{source}</li>
+                    ))}
+                </ul>
+            </div>
+        )}
         
         {/* Footer */}
         <div className="mt-12 pt-4 text-center text-gray-400 text-xs border-t border-gray-100">
-            Généré automatiquement par l'IA - Budget respecté : {settings.budget}€
+            Généré automatiquement par l'IA - Budget respecté : {settings.budget}{settings.currency}
         </div>
       </div>
     </div>

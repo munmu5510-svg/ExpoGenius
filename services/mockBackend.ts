@@ -22,21 +22,30 @@ const initFirebase = () => {
     try {
         const sdkString = localStorage.getItem(KEYS.FIREBASE_SDK);
         if (sdkString) {
-            // Very basic sanitation to handle if user pastes "const firebaseConfig = { ... }" or just "{ ... }"
             let jsonString = sdkString.trim();
+            
+            // --- SMART JSON FIXER ---
+            // 1. Remove JS variable declaration (const firebaseConfig = ...)
             if (jsonString.includes('=')) {
                 jsonString = jsonString.substring(jsonString.indexOf('=') + 1).trim();
             }
-            // Remove trailing semicolon and potential trailing whitespace
-            jsonString = jsonString.replace(/;+\s*$/, '');
             
-            // Try to make it valid JSON if keys aren't quoted
-            // This is a naive fix for copied JS objects, but helps UX
-            if (!jsonString.includes('"apiKey"')) {
-                 // Warning: This is risky but helps for the demo input box. 
-                 // In production, we'd force valid JSON input.
-                 // We will skip this complex regex for now and expect the user to correct JSON or Paste Valid JSON.
-            }
+            // 2. Cleanup syntax: comments, semicolons
+            jsonString = jsonString.replace(/\/\/.*$/gm, ''); // Remove single line comments
+            jsonString = jsonString.replace(/\/\*[\s\S]*?\*\//g, ''); // Remove block comments
+            jsonString = jsonString.replace(/;+\s*$/, ''); // Remove trailing semicolon
+
+            // 3. Fix Keys: Convert { apiKey: ... } to { "apiKey": ... }
+            // Regex finds keys (alphanumeric) followed by ':' that are preceded by '{' or ','
+            jsonString = jsonString.replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":');
+
+            // 4. Fix Values: Convert single quotes to double quotes : 'value' -> : "value"
+            jsonString = jsonString.replace(/:\s*'([^']+)'/g, ': "$1"');
+
+            // 5. Remove trailing commas (valid in JS but invalid in JSON)
+            jsonString = jsonString.replace(/,\s*}/g, '}');
+            
+            // --- END FIXER ---
 
             const firebaseConfig = JSON.parse(jsonString);
             
@@ -51,7 +60,9 @@ const initFirebase = () => {
             return true;
         }
     } catch (e) {
-        console.error("❌ Firebase Init Failed (Using LocalStorage fallback):", e);
+        console.error("❌ Firebase Init Failed (Using LocalStorage fallback).");
+        console.error("Debug info - Parse Error:", e);
+        console.warn("Veuillez vérifier le format dans le panneau Admin.");
     }
     return false;
 };

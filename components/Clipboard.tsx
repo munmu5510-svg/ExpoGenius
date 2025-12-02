@@ -114,7 +114,7 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
               await addElementToPdf(sections[i] as HTMLElement, i === 0);
           }
 
-          pdf.save(`WordShelter-${result?.title || 'Document'}.pdf`);
+          pdf.save(`WordPoz-${result?.title || 'Document'}.pdf`);
       } catch (err) {
           console.error("PDF Error", err);
           alert("Erreur lors de la création du PDF.");
@@ -293,7 +293,9 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
                              <div className="pdf-section w-[210mm] min-h-[297mm] p-12 bg-white">
                                  <h2 className="text-3xl font-bold mb-8 text-center uppercase tracking-wider">Sommaire</h2>
                                  <div className="space-y-4">
-                                     {result.content.toc.map((item, i) => (
+                                     {result.content.toc
+                                         .filter(item => !['couverture', 'sommaire', 'questions-réponses', 'questions réponses', 'discours', 'speech', 'q&a', 'présentation'].some(exclude => item.title.toLowerCase().includes(exclude)))
+                                         .map((item, i) => (
                                          <div key={i} className="flex items-end">
                                              <span className="font-medium text-lg bg-white pr-2 z-10">{item.title}</span>
                                              <div className="flex-1 border-b-2 border-dotted border-gray-400 mb-1 mx-2"></div>

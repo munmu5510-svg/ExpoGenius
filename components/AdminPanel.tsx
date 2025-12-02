@@ -15,7 +15,7 @@ export const AdminPanel = ({ user, onBack }: { user: User, onBack: () => void })
       <div className="flex items-center justify-between mb-8 border-b border-gray-700 pb-4">
           <div className="flex items-center gap-4">
               <button onClick={onBack} className="p-2 hover:bg-gray-800 rounded-full"><ArrowLeft /></button>
-              <h1 className="text-2xl font-bold flex items-center gap-2"><Shield className="text-purple-500" /> Admin WordShelter</h1>
+              <h1 className="text-2xl font-bold flex items-center gap-2"><Shield className="text-purple-500" /> Admin WordPoz</h1>
           </div>
           <div className="text-xs text-gray-400">v1.0.0</div>
       </div>

@@ -8,7 +8,7 @@ export const chatWithWosAI = async (message: string, history: {role: 'user' | 'm
     const chat = ai.chats.create({
       model: "gemini-2.5-flash",
       config: {
-        systemInstruction: "You are WOS AI, the intelligent assistant for WordShelter. You help students with their writing projects, offer academic advice, and explain how to use the WordShelter app. Keep answers concise and helpful.",
+        systemInstruction: "You are WOS AI, the intelligent assistant for WordPoz. You help students with their writing projects, offer academic advice, and explain how to use the WordPoz app. Keep answers concise and helpful.",
       },
       history: history
     });
@@ -25,7 +25,7 @@ export const generateDocument = async (config: GenerationConfig, userName: strin
   const modelId = "gemini-2.5-flash"; // Using flash for speed and cost efficiency as per request
 
   let prompt = "";
-  let systemInstruction = "You are WordShelter AI, a professional academic writing assistant.";
+  let systemInstruction = "You are WordPoz AI, a professional academic writing assistant.";
 
   if (config.type === 'expose') {
     prompt = `
@@ -38,7 +38,7 @@ export const generateDocument = async (config: GenerationConfig, userName: strin
       
       Structure requise (JSON) :
       1. Infos de couverture (titre, sous-titre).
-      2. Sommaire (estime les pages).
+      2. Sommaire (estime les pages). IMPORTANT : Ne JAMAIS inclure "Couverture", "Sommaire", "Questions-Réponses" ni "Discours" dans cette liste. Liste uniquement Introduction, Sections, Conclusion et Bibliographie.
       3. Introduction.
       4. Sections détaillées (titre, contenu, suggestions visuelles). Marque les termes techniques ou importants.
       5. Conclusion.

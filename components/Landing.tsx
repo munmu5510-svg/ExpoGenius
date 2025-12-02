@@ -8,7 +8,7 @@ export const Landing = ({ onGetStarted }: { onGetStarted: () => void }) => {
       <nav className="p-6 flex justify-between items-center max-w-7xl mx-auto">
         <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full wos-gradient"></div>
-            <span className="font-serif font-bold text-xl">WordShelter</span>
+            <span className="font-serif font-bold text-xl">WordPoz</span>
         </div>
         <button onClick={onGetStarted} className="px-6 py-2 rounded-full border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition">
             Login
@@ -69,14 +69,14 @@ export const Landing = ({ onGetStarted }: { onGetStarted: () => void }) => {
       {/* Footer */}
       <footer className="py-8 text-center border-t border-gray-200 dark:border-gray-800">
          <div className="flex justify-center gap-6 mb-4">
-             <a href="https://facebook.com/WordShelter" target="_blank" className="p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700">
+             <a href="https://facebook.com/WordPoz" target="_blank" className="p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700">
                  <Facebook size={20} />
              </a>
              <a href="https://chat.whatsapp.com/k1T86s9DT4I7Yfg55xs6rc?mode=wwt" target="_blank" className="p-2 bg-green-500 text-white rounded-full hover:bg-green-600">
                  <Phone size={20} />
              </a>
          </div>
-         <p className="text-gray-500 text-sm">© 2024 WordShelter - WySlider. All rights reserved.</p>
+         <p className="text-gray-500 text-sm">© 2024 WordPoz - WySlider. All rights reserved.</p>
       </footer>
     </div>
   );

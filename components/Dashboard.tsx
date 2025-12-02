@@ -77,7 +77,7 @@ export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, togg
       <header className="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-10 px-4 py-3 flex justify-between items-center">
         <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full wos-gradient flex items-center justify-center text-white font-serif font-bold">W</div>
-            <span className="font-bold text-lg hidden md:block">WordShelter</span>
+            <span className="font-bold text-lg hidden md:block">WordPoz</span>
         </div>
         
         <div className="flex items-center gap-3">

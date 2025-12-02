@@ -28,7 +28,7 @@ export const UserProfile = ({ user, onBack, onUpdateUser, onLogout }: UserProfil
       
       const shareData = {
           title: selectedShareDoc.title,
-          text: `Découvrez mon document "${selectedShareDoc.title}" généré avec WordShelter.\n\n${selectedShareDoc.content.introduction?.substring(0, 100)}...`,
+          text: `Découvrez mon document "${selectedShareDoc.title}" généré avec WordPoz.\n\n${selectedShareDoc.content.introduction?.substring(0, 100)}...`,
           url: window.location.href // Ideally a direct link to the doc if backend existed
       };
 
@@ -152,7 +152,7 @@ export const UserProfile = ({ user, onBack, onUpdateUser, onLogout }: UserProfil
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm">
                     <h3 className="font-bold mb-4">Feedback</h3>
                     <textarea className="w-full p-3 rounded-xl border dark:bg-gray-700 dark:border-gray-600 h-24 mb-2" placeholder="Dites-nous ce que vous pensez..."></textarea>
-                    <button onClick={() => alert("Merci pour votre retour !")} className="px-4 py-2 bg-gray-900 dark:bg-gray-700 text-white rounded-lg text-sm">Envoyer à la Team WordShelter</button>
+                    <button onClick={() => alert("Merci pour votre retour !")} className="px-4 py-2 bg-gray-900 dark:bg-gray-700 text-white rounded-lg text-sm">Envoyer à la Team WordPoz</button>
                 </div>
             </div>
         </div>

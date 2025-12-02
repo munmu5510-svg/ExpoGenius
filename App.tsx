@@ -3,9 +3,7 @@ import { ViewState, User, DocType, GeneratedContent, GenerationConfig } from './
 import { backend } from './services/mockBackend';
 import { generateDocument } from './services/geminiService';
 
-// Components (We will define these inside App.tsx or separate files if allowed, 
-// but for the sake of the instructions to "update files", I will inline small components 
-// and assume complex ones are built out in the changes block or put logic here)
+// Components
 import { Splash } from './components/Splash';
 import { Landing } from './components/Landing';
 import { Auth } from './components/Auth';
@@ -13,12 +11,14 @@ import { Dashboard } from './components/Dashboard';
 import { Clipboard } from './components/Clipboard';
 import { UserProfile } from './components/UserProfile';
 import { AdminPanel } from './components/AdminPanel';
+import { WosAiChat } from './components/WosAiChat';
 
 export default function App() {
   const [view, setView] = useState<ViewState>('splash');
   const [user, setUser] = useState<User | null>(null);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [lang, setLang] = useState('en');
+  const [selectedDoc, setSelectedDoc] = useState<GeneratedContent | null>(null);
 
   // Load Initial State
   useEffect(() => {
@@ -54,6 +54,11 @@ export default function App() {
       }
   };
 
+  const handleDocSelect = (doc: GeneratedContent) => {
+      setSelectedDoc(doc);
+      setView('clipboard');
+  };
+
   // View Routing
   const renderView = () => {
     switch(view) {
@@ -63,7 +68,8 @@ export default function App() {
         case 'dashboard': 
             return <Dashboard 
                 user={user!} 
-                onNavigate={setView} 
+                onNavigate={setView}
+                onSelectDoc={handleDocSelect}
                 onLogout={() => { backend.logout(); setUser(null); setView('auth'); }}
                 theme={theme}
                 toggleTheme={toggleTheme}
@@ -71,7 +77,11 @@ export default function App() {
         case 'clipboard': 
             return <Clipboard 
                 user={user!} 
-                onBack={() => setView('dashboard')} 
+                onBack={() => {
+                    setSelectedDoc(null); // Clear selection when going back
+                    setView('dashboard');
+                }}
+                initialDoc={selectedDoc}
                 onGenerate={async (config) => {
                     if (user!.generationsUsed >= user!.generationsLimit) {
                         alert("Limite atteinte ! Passez à Standard.");
@@ -97,6 +107,8 @@ export default function App() {
                 user={user!} 
                 onBack={() => setView('dashboard')} 
             />;
+        case 'wos_chat':
+            return <WosAiChat onBack={() => setView('dashboard')} />;
         default: return <Landing onGetStarted={() => setView('auth')} />;
     }
   };

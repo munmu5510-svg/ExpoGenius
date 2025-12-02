@@ -1,17 +1,18 @@
 import React from 'react';
-import { User, ViewState } from '../types';
+import { User, ViewState, GeneratedContent } from '../types';
 import { Sparkles, Bell, User as UserIcon, LogOut, Sun, Moon, Search, Plus, List } from 'lucide-react';
 import { backend } from '../services/mockBackend';
 
 interface DashboardProps {
   user: User;
   onNavigate: (view: ViewState) => void;
+  onSelectDoc: (doc: GeneratedContent) => void;
   onLogout: () => void;
   theme: 'light' | 'dark';
   toggleTheme: () => void;
 }
 
-export const Dashboard = ({ user, onNavigate, onLogout, theme, toggleTheme }: DashboardProps) => {
+export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, toggleTheme }: DashboardProps) => {
   const docs = backend.getUserDocuments(user.id);
   const notifications = backend.getNotifications();
   const unreadCount = notifications.filter(n => !n.read).length;
@@ -73,9 +74,12 @@ export const Dashboard = ({ user, onNavigate, onLogout, theme, toggleTheme }: Da
             </div>
         </div>
 
-        {/* AI Assistant FAB (Conceptual) */}
+        {/* AI Assistant FAB */}
         <div className="fixed bottom-6 right-6 z-20">
-             <button className="w-14 h-14 rounded-full bg-black dark:bg-white text-white dark:text-black shadow-2xl flex items-center justify-center hover:scale-110 transition-transform">
+             <button 
+                onClick={() => onNavigate('wos_chat')}
+                className="w-14 h-14 rounded-full bg-black dark:bg-white text-white dark:text-black shadow-2xl flex items-center justify-center hover:scale-110 transition-transform"
+             >
                  <Sparkles size={24} />
              </button>
         </div>
@@ -92,7 +96,11 @@ export const Dashboard = ({ user, onNavigate, onLogout, theme, toggleTheme }: Da
         ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {docs.map((doc: any, i: number) => (
-                    <div key={i} className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+                    <div 
+                        key={i} 
+                        onClick={() => onSelectDoc(doc)}
+                        className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all cursor-pointer hover:border-purple-200 dark:hover:border-purple-800"
+                    >
                         <div className="flex justify-between items-start mb-4">
                             <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${
                                 doc.type === 'expose' ? 'bg-blue-100 text-blue-600' : 

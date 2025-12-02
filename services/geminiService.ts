@@ -3,6 +3,24 @@ import { GenerationConfig, GeneratedContent } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
+export const chatWithWosAI = async (message: string, history: {role: 'user' | 'model', parts: [{text: string}]}[]): Promise<string> => {
+  try {
+    const chat = ai.chats.create({
+      model: "gemini-2.5-flash",
+      config: {
+        systemInstruction: "You are WOS AI, the intelligent assistant for WordShelter. You help students with their writing projects, offer academic advice, and explain how to use the WordShelter app. Keep answers concise and helpful.",
+      },
+      history: history
+    });
+
+    const response = await chat.sendMessage({ message: message });
+    return response.text || "Désolé, je n'ai pas pu générer de réponse.";
+  } catch (error) {
+    console.error("Chat Error", error);
+    return "Une erreur est survenue lors de la communication avec WOS AI.";
+  }
+};
+
 export const generateDocument = async (config: GenerationConfig, userName: string): Promise<GeneratedContent> => {
   const modelId = "gemini-2.5-flash"; // Using flash for speed and cost efficiency as per request
 

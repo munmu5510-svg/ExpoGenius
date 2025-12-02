@@ -1,4 +1,4 @@
-export type ViewState = 'splash' | 'landing' | 'auth' | 'dashboard' | 'clipboard' | 'profile' | 'admin';
+export type ViewState = 'splash' | 'landing' | 'auth' | 'dashboard' | 'clipboard' | 'profile' | 'admin' | 'wos_chat';
 export type DocType = 'expose' | 'dissertation' | 'argumentation';
 export type PlanType = 'freemium' | 'standard' | 'pro_plus';
 

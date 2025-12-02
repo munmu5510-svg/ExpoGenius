@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { User, PromoCode } from '../types';
+import { User, PromoCode, GeneratedContent } from '../types';
 import { backend } from '../services/mockBackend';
-import { ArrowLeft, User as UserIcon, CreditCard, Gift, LogOut, Check } from 'lucide-react';
+import { ArrowLeft, User as UserIcon, CreditCard, Gift, LogOut, Check, Share2, FileText } from 'lucide-react';
 
 interface UserProfileProps {
   user: User;
@@ -13,11 +13,34 @@ interface UserProfileProps {
 export const UserProfile = ({ user, onBack, onUpdateUser, onLogout }: UserProfileProps) => {
   const [promoCode, setPromoCode] = useState('');
   const [promoMessage, setPromoMessage] = useState('');
+  const [selectedShareDoc, setSelectedShareDoc] = useState<GeneratedContent | null>(null);
+  
+  const userDocs = backend.getUserDocuments(user.id);
 
   const handlePromo = () => {
       const res = backend.applyPromo(promoCode, user);
       setPromoMessage(res.message);
       if(res.success && res.user) onUpdateUser(res.user);
+  };
+
+  const handleShare = async () => {
+      if (!selectedShareDoc) return;
+      
+      const shareData = {
+          title: selectedShareDoc.title,
+          text: `Découvrez mon document "${selectedShareDoc.title}" généré avec WordShelter.\n\n${selectedShareDoc.content.introduction?.substring(0, 100)}...`,
+          url: window.location.href // Ideally a direct link to the doc if backend existed
+      };
+
+      try {
+          if (navigator.share) {
+              await navigator.share(shareData);
+          } else {
+              alert("Le partage n'est pas supporté sur cet appareil. Copiez ce texte : " + shareData.text);
+          }
+      } catch (err) {
+          console.error("Error sharing", err);
+      }
   };
 
   const plans = [
@@ -44,6 +67,31 @@ export const UserProfile = ({ user, onBack, onUpdateUser, onLogout }: UserProfil
                     <p className="text-sm text-gray-500 mb-4">{user.email}</p>
                     <button onClick={onLogout} className="text-red-500 text-sm flex items-center justify-center gap-2 w-full p-2 hover:bg-red-50 dark:hover:bg-gray-700 rounded-lg">
                         <LogOut size={16} /> Se déconnecter
+                    </button>
+                </div>
+
+                {/* Share Section */}
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm">
+                    <h3 className="font-bold mb-4 flex items-center gap-2"><Share2 size={18} /> Partager</h3>
+                    <div className="space-y-2 mb-4 max-h-40 overflow-y-auto">
+                        {userDocs.length === 0 && <p className="text-xs text-gray-400">Aucun document à partager.</p>}
+                        {userDocs.map(doc => (
+                            <div 
+                                key={doc.createdAt}
+                                onClick={() => setSelectedShareDoc(doc)}
+                                className={`p-2 rounded cursor-pointer text-sm flex items-center gap-2 ${selectedShareDoc?.createdAt === doc.createdAt ? 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-white' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+                            >
+                                <FileText size={14} />
+                                <span className="truncate">{doc.title}</span>
+                            </div>
+                        ))}
+                    </div>
+                    <button 
+                        onClick={handleShare} 
+                        disabled={!selectedShareDoc}
+                        className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                        <Share2 size={14} /> Partager
                     </button>
                 </div>
 

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, ViewState, GeneratedContent } from '../types';
-import { Sparkles, Bell, User as UserIcon, LogOut, Sun, Moon, Search, Plus, List, Trash2, Edit2, Share2, MoreVertical, X, CheckSquare } from 'lucide-react';
+import { Sparkles, Bell, User as UserIcon, LogOut, Sun, Moon, Search, Plus, List, Trash2, Edit2, Share2, MoreVertical, X, CheckSquare, Loader } from 'lucide-react';
 import { backend } from '../services/mockBackend';
 
 interface DashboardProps {
@@ -15,13 +15,31 @@ interface DashboardProps {
 type SelectionMode = 'none' | 'delete' | 'edit' | 'template';
 
 export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, toggleTheme }: DashboardProps) => {
-  const [docs, setDocs] = useState(backend.getUserDocuments(user.id));
+  const [docs, setDocs] = useState<GeneratedContent[]>([]);
+  const [isLoadingDocs, setIsLoadingDocs] = useState(true);
   const notifications = backend.getNotifications();
   const unreadCount = notifications.filter(n => !n.read).length;
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [selectionMode, setSelectionMode] = useState<SelectionMode>('none');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  // Fetch Docs on Mount
+  useEffect(() => {
+      const loadDocs = async () => {
+          setIsLoadingDocs(true);
+          try {
+              const d = await backend.getUserDocuments(user.id);
+              setDocs(d);
+          } catch(e) {
+              console.error(e);
+          } finally {
+              setIsLoadingDocs(false);
+          }
+      };
+      loadDocs();
+  }, [user.id]);
 
   const handleAction = (mode: SelectionMode) => {
       setSelectionMode(mode);
@@ -42,32 +60,39 @@ export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, togg
       }
   };
 
-  const executeAction = () => {
+  const executeAction = async () => {
       if (selectedIds.length === 0) return;
+      setActionLoading(true);
 
-      if (selectionMode === 'delete') {
-          if (confirm(`Supprimer ${selectedIds.length} document(s) ?`)) {
-              backend.deleteDocuments(selectedIds);
-              setDocs(backend.getUserDocuments(user.id));
-              setSelectionMode('none');
-              setSelectedIds([]);
-          }
-      } else if (selectionMode === 'edit') {
-          const doc = docs.find((d: any) => (d.id || d.createdAt.toString()) === selectedIds[0]);
-          if (doc) {
-              const newTitle = prompt("Nouveau titre :", doc.title);
-              if (newTitle) {
-                  backend.updateDocumentTitle(selectedIds[0], newTitle);
-                  setDocs(backend.getUserDocuments(user.id));
-              }
-              setSelectionMode('none');
-              setSelectedIds([]);
-          }
-      } else if (selectionMode === 'template') {
-          // Mock Share
-          alert(`${selectedIds.length} document(s) partagé(s) comme template(s) !`);
-          setSelectionMode('none');
-          setSelectedIds([]);
+      try {
+        if (selectionMode === 'delete') {
+            if (confirm(`Supprimer ${selectedIds.length} document(s) ?`)) {
+                await backend.deleteDocuments(selectedIds);
+                setDocs(await backend.getUserDocuments(user.id)); // Reload
+                setSelectionMode('none');
+                setSelectedIds([]);
+            }
+        } else if (selectionMode === 'edit') {
+            const doc = docs.find((d: any) => (d.id || d.createdAt.toString()) === selectedIds[0]);
+            if (doc) {
+                const newTitle = prompt("Nouveau titre :", doc.title);
+                if (newTitle) {
+                    await backend.updateDocumentTitle(selectedIds[0], newTitle);
+                    setDocs(await backend.getUserDocuments(user.id));
+                }
+                setSelectionMode('none');
+                setSelectedIds([]);
+            }
+        } else if (selectionMode === 'template') {
+            // Mock Share
+            alert(`${selectedIds.length} document(s) partagé(s) comme template(s) !`);
+            setSelectionMode('none');
+            setSelectedIds([]);
+        }
+      } catch (e) {
+          alert("Erreur lors de l'action");
+      } finally {
+          setActionLoading(false);
       }
   };
 
@@ -163,7 +188,11 @@ export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, togg
         )}
 
         {/* Grid */}
-        {docs.length === 0 ? (
+        {isLoadingDocs ? (
+             <div className="flex justify-center items-center py-20">
+                 <Loader className="animate-spin text-purple-600" size={40} />
+             </div>
+        ) : docs.length === 0 ? (
             <div className="text-center py-20 opacity-50">
                 <div className="mx-auto w-20 h-20 bg-gray-200 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
                     <List size={32} />
@@ -223,9 +252,10 @@ export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, togg
             <div className="fixed bottom-24 right-6 z-30 animate-bounce">
                 <button 
                     onClick={executeAction}
+                    disabled={actionLoading}
                     className="px-6 py-3 bg-gray-900 dark:bg-white text-white dark:text-black rounded-full shadow-2xl font-bold flex items-center gap-2"
                 >
-                    {selectionMode === 'delete' ? <Trash2 size={18} /> : selectionMode === 'edit' ? <Edit2 size={18} /> : <Share2 size={18} />}
+                    {actionLoading ? <Loader className="animate-spin" size={18} /> : (selectionMode === 'delete' ? <Trash2 size={18} /> : selectionMode === 'edit' ? <Edit2 size={18} /> : <Share2 size={18} />)}
                     Confirmer ({selectedIds.length})
                 </button>
             </div>

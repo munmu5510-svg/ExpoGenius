@@ -6,23 +6,27 @@ export const Auth = ({ onLogin }: { onLogin: (user: User) => void }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState(''); // Visual only for this mock
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
     try {
         if (isLogin) {
-            const user = backend.login(email);
+            const user = await backend.login(email, password);
             onLogin(user);
         } else {
             if(!name) return setError("Nom requis");
-            const user = backend.register(name, email);
+            const user = await backend.register(name, email, password);
             onLogin(user);
         }
     } catch (err: any) {
-        setError(err.message);
+        setError(err.message || "Une erreur est survenue");
+    } finally {
+        setLoading(false);
     }
   };
 
@@ -32,7 +36,9 @@ export const Auth = ({ onLogin }: { onLogin: (user: User) => void }) => {
         <div className="text-center mb-8">
             <div className="w-16 h-16 rounded-full wos-gradient mx-auto mb-4 flex items-center justify-center text-white text-2xl font-serif font-bold">W</div>
             <h2 className="text-2xl font-bold dark:text-white">{isLogin ? 'Bon retour' : 'Créer un compte'}</h2>
-            <p className="text-gray-500 text-sm">WordPoz Authentication</p>
+            <p className="text-gray-500 text-sm">
+                {backend.isFirebaseActive() ? 'Cloud Secure Auth' : 'Mode Local / Démo'}
+            </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -51,10 +57,14 @@ export const Auth = ({ onLogin }: { onLogin: (user: User) => void }) => {
                 <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full px-4 py-2 rounded-lg border dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none" placeholder="••••••••" required />
             </div>
             
-            {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+            {error && <p className="text-red-500 text-sm text-center bg-red-50 p-2 rounded">{error}</p>}
 
-            <button type="submit" className="w-full py-3 rounded-lg wos-gradient text-white font-bold hover:opacity-90 transition">
-                {isLogin ? 'Se connecter' : "S'inscrire"}
+            <button 
+                type="submit" 
+                disabled={loading}
+                className="w-full py-3 rounded-lg wos-gradient text-white font-bold hover:opacity-90 transition disabled:opacity-50 flex justify-center items-center"
+            >
+                {loading ? <span className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></span> : (isLogin ? 'Se connecter' : "S'inscrire")}
             </button>
         </form>
 

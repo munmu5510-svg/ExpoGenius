@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { ExposeContent, UserSettings } from '../types';
-import { Download, Printer, AlertTriangle, CheckCircle, Book } from 'lucide-react';
+import { Download, Printer, AlertTriangle, CheckCircle, Book, Share2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -82,6 +82,25 @@ export const ReportView: React.FC<ReportViewProps> = ({ content, settings }) => 
     window.print();
   };
 
+  const handleShare = async () => {
+    const shareData = {
+        title: content.title,
+        text: `Découvrez mon exposé généré sur WordPoz : "${content.title}"\n\nSujet : ${settings.topic}\n\n${content.introduction?.substring(0, 200)}...`,
+        url: window.location.href
+    };
+
+    try {
+        if (navigator.share) {
+            await navigator.share(shareData);
+        } else {
+            await navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}`);
+            alert("Résumé copié dans le presse-papier (Partage non supporté sur ce navigateur)");
+        }
+    } catch (err) {
+        console.error("Error sharing", err);
+    }
+  };
+
   const handleDownloadPDF = async () => {
     if (!reportRef.current) return;
 
@@ -150,6 +169,13 @@ export const ReportView: React.FC<ReportViewProps> = ({ content, settings }) => 
         </div>
         
         <div className="flex gap-3">
+            <button 
+                onClick={handleShare}
+                className="flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors font-medium"
+            >
+                <Share2 size={18} />
+                Partager
+            </button>
             <button 
                 onClick={handlePrint}
                 className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"

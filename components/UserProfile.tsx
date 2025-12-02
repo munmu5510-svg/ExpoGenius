@@ -1,21 +1,29 @@
-import React, { useState } from 'react';
-import { User, PromoCode, GeneratedContent } from '../types';
+import React, { useState, useEffect } from 'react';
+import { User, PromoCode, GeneratedContent, ViewState } from '../types';
 import { backend } from '../services/mockBackend';
-import { ArrowLeft, User as UserIcon, CreditCard, Gift, LogOut, Check, Share2, FileText } from 'lucide-react';
+import { ArrowLeft, User as UserIcon, CreditCard, Gift, LogOut, Check, Share2, FileText, Shield } from 'lucide-react';
 
 interface UserProfileProps {
   user: User;
   onBack: () => void;
+  onNavigate: (view: ViewState) => void;
   onUpdateUser: (u: User) => void;
   onLogout: () => void;
 }
 
-export const UserProfile = ({ user, onBack, onUpdateUser, onLogout }: UserProfileProps) => {
+export const UserProfile = ({ user, onBack, onNavigate, onUpdateUser, onLogout }: UserProfileProps) => {
   const [promoCode, setPromoCode] = useState('');
   const [promoMessage, setPromoMessage] = useState('');
   const [selectedShareDoc, setSelectedShareDoc] = useState<GeneratedContent | null>(null);
-  
-  const userDocs = backend.getUserDocuments(user.id);
+  const [userDocs, setUserDocs] = useState<GeneratedContent[]>([]);
+
+  useEffect(() => {
+      const load = async () => {
+          const docs = await backend.getUserDocuments(user.id);
+          setUserDocs(docs);
+      };
+      load();
+  }, [user.id]);
 
   const handlePromo = () => {
       const res = backend.applyPromo(promoCode, user);
@@ -115,8 +123,13 @@ export const UserProfile = ({ user, onBack, onUpdateUser, onLogout }: UserProfil
 
                 {user.isAdmin && (
                     <div className="bg-purple-100 dark:bg-purple-900 p-4 rounded-xl text-center">
-                        <p className="font-bold text-purple-700 dark:text-purple-200">Mode Admin Actif</p>
-                        <p className="text-xs text-purple-600 dark:text-purple-300">Code: admin2301 utilisé</p>
+                        <p className="font-bold text-purple-700 dark:text-purple-200 mb-2">Mode Admin Actif</p>
+                        <button 
+                            onClick={() => onNavigate('admin')}
+                            className="w-full py-2 bg-purple-600 hover:bg-purple-700 text-white rounded text-sm font-bold flex items-center justify-center gap-2"
+                        >
+                            <Shield size={16} /> Accéder au Panel
+                        </button>
                     </div>
                 )}
             </div>

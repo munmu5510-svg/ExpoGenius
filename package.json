@@ -14,7 +14,8 @@
     "jspdf": "^3.0.4",
     "lucide-react": "^0.555.0",
     "@google/genai": "^1.30.0",
-    "react": "^19.2.0"
+    "react": "^19.2.0",
+    "firebase": "^12.6.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

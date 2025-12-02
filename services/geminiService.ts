@@ -38,7 +38,7 @@ export const generateDocument = async (config: GenerationConfig, userName: strin
       
       Structure requise (JSON) :
       1. Infos de couverture (titre, sous-titre).
-      2. Sommaire (estime les pages). IMPORTANT : Ne JAMAIS inclure "Couverture", "Sommaire", "Questions-Réponses" ni "Discours" dans cette liste. Liste uniquement Introduction, Sections, Conclusion et Bibliographie.
+      2. Sommaire (estime les pages). IMPORTANT : La liste du sommaire doit contenir UNIQUEMENT : Introduction, les Titres des Sections, Conclusion et Bibliographie. Ne JAMAIS inclure "Couverture", "Sommaire", "Questions-Réponses", "Discours" ni "Speech" dans cette liste.
       3. Introduction.
       4. Sections détaillées (titre, contenu, suggestions visuelles). Marque les termes techniques ou importants.
       5. Conclusion.

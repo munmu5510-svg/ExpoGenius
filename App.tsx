@@ -20,7 +20,7 @@ export default function App() {
   const [lang, setLang] = useState('en');
   const [selectedDoc, setSelectedDoc] = useState<GeneratedContent | null>(null);
 
-  // Load Initial State
+  // Load Initial State and Auth Listener
   useEffect(() => {
     // Language
     const browserLang = navigator.language.startsWith('fr') ? 'fr' : 'en';
@@ -32,17 +32,30 @@ export default function App() {
         document.body.classList.add('dark');
     }
 
-    // Splash Timer
-    setTimeout(() => {
-        const currentUser = backend.getCurrentUser();
+    // Initialize Auth Listener
+    // This handles both Firebase Auth changes AND initial local storage checks
+    backend.onAuthStateChange((currentUser) => {
         if (currentUser) {
             setUser(currentUser);
-            setView('dashboard');
+            // Only switch to dashboard if we are currently in splash or landing or auth
+            // This prevents redirecting if user is already deep in the app
+            setView(prev => (prev === 'splash' || prev === 'landing' || prev === 'auth') ? 'dashboard' : prev);
         } else {
+            setUser(null);
+            // If we were expecting a user, go to landing, but give splash a moment
+            setView(prev => prev === 'splash' ? 'landing' : 'auth');
+        }
+    });
+
+    // Fallback for splash if auth is slow or empty
+    const timer = setTimeout(() => {
+        if (!user && view === 'splash') {
             setView('landing');
         }
     }, 2500);
-  }, []);
+
+    return () => clearTimeout(timer);
+  }, []); // Run once
 
   const toggleTheme = () => {
       if (theme === 'light') {
@@ -70,7 +83,7 @@ export default function App() {
                 user={user!} 
                 onNavigate={setView}
                 onSelectDoc={handleDocSelect}
-                onLogout={() => { backend.logout(); setUser(null); setView('auth'); }}
+                onLogout={async () => { await backend.logout(); setUser(null); setView('auth'); }}
                 theme={theme}
                 toggleTheme={toggleTheme}
             />;
@@ -88,9 +101,9 @@ export default function App() {
                         return null;
                     }
                     const doc = await generateDocument(config, user!.name);
-                    backend.saveDocument(doc, user!.id);
+                    await backend.saveDocument(doc, user!.id);
                     const updatedUser = { ...user!, generationsUsed: user!.generationsUsed + 1 };
-                    backend.updateUser(updatedUser);
+                    await backend.updateUser(updatedUser);
                     setUser(updatedUser);
                     return doc;
                 }}
@@ -99,8 +112,9 @@ export default function App() {
             return <UserProfile 
                 user={user!} 
                 onBack={() => setView('dashboard')}
-                onUpdateUser={(u) => { backend.updateUser(u); setUser(u); }}
-                onLogout={() => { backend.logout(); setUser(null); setView('auth'); }}
+                onNavigate={setView}
+                onUpdateUser={async (u) => { await backend.updateUser(u); setUser(u); }}
+                onLogout={async () => { await backend.logout(); setUser(null); setView('auth'); }}
             />;
         case 'admin':
             return <AdminPanel 

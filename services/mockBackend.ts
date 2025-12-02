@@ -77,7 +77,8 @@ export const backend = {
 
   saveDocument: (doc: GeneratedContent, userId: string) => {
       const docs = JSON.parse(localStorage.getItem(KEYS.DOCS) || '[]');
-      docs.push({ ...doc, userId });
+      const newDoc = { ...doc, userId, id: Date.now().toString() }; // Ensure ID
+      docs.push(newDoc);
       localStorage.setItem(KEYS.DOCS, JSON.stringify(docs));
       
       // Update stats
@@ -89,6 +90,23 @@ export const backend = {
   getUserDocuments: (userId: string): GeneratedContent[] => {
       const docs = JSON.parse(localStorage.getItem(KEYS.DOCS) || '[]');
       return docs.filter((d: any) => d.userId === userId).reverse();
+  },
+
+  deleteDocuments: (docIds: string[]) => {
+      let docs = JSON.parse(localStorage.getItem(KEYS.DOCS) || '[]');
+      // Filter out documents whose createdAt (used as ID in prev versions) or id matches
+      // Compatibility with older mock data which might not have 'id' property explicitly separate from createdAt
+      docs = docs.filter((d: any) => !docIds.includes(d.id || d.createdAt.toString()));
+      localStorage.setItem(KEYS.DOCS, JSON.stringify(docs));
+  },
+
+  updateDocumentTitle: (docId: string, newTitle: string) => {
+      const docs = JSON.parse(localStorage.getItem(KEYS.DOCS) || '[]');
+      const index = docs.findIndex((d: any) => (d.id || d.createdAt.toString()) === docId);
+      if (index !== -1) {
+          docs[index].title = newTitle;
+          localStorage.setItem(KEYS.DOCS, JSON.stringify(docs));
+      }
   },
 
   applyPromo: (code: string, user: User): {success: boolean, message: string, user?: User} => {

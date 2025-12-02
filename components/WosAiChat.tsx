@@ -49,9 +49,9 @@ export const WosAiChat = ({ onBack }: { onBack: () => void }) => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
+    <div className="flex flex-col h-[100dvh] bg-white dark:bg-gray-900 text-gray-900 dark:text-white fixed inset-0 z-50">
         {/* Header */}
-        <div className="p-4 border-b dark:border-gray-800 flex items-center gap-3 shadow-sm bg-white dark:bg-gray-900 z-10">
+        <div className="p-4 border-b dark:border-gray-800 flex items-center gap-3 shadow-sm bg-white dark:bg-gray-900 z-10 shrink-0">
             <button onClick={onBack} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full">
                 <ArrowLeft />
             </button>
@@ -67,7 +67,7 @@ export const WosAiChat = ({ onBack }: { onBack: () => void }) => {
         </div>
 
         {/* Chat Area */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-950">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-950 overscroll-contain">
             {messages.map((msg) => (
                 <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                     <div className={`flex gap-3 max-w-[85%] md:max-w-[70%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
@@ -101,15 +101,15 @@ export const WosAiChat = ({ onBack }: { onBack: () => void }) => {
         </div>
 
         {/* Input Area */}
-        <div className="p-4 bg-white dark:bg-gray-900 border-t dark:border-gray-800">
+        <div className="p-4 bg-white dark:bg-gray-900 border-t dark:border-gray-800 shrink-0 safe-area-bottom">
             <div className="flex items-center gap-2 max-w-4xl mx-auto bg-gray-100 dark:bg-gray-800 p-2 rounded-full border dark:border-gray-700 focus-within:ring-2 focus-within:ring-purple-500 transition-all">
                 <input 
                     type="text" 
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                    placeholder="Posez une question à WOS AI..."
-                    className="flex-1 bg-transparent border-none focus:ring-0 px-4 py-2 outline-none dark:text-white"
+                    placeholder="Posez une question..."
+                    className="flex-1 bg-transparent border-none focus:ring-0 px-4 py-2 outline-none dark:text-white text-base"
                 />
                 <button 
                     onClick={handleSend}

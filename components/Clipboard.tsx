@@ -23,10 +23,10 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
   const [topic, setTopic] = useState('');
   const [level, setLevel] = useState('');
   // Exposé specific
-  const [currency, setCurrency] = useState('€');
-  const [bwPrice, setBwPrice] = useState(0.1);
-  const [colorPrice, setColorPrice] = useState(0.5);
-  const [budget, setBudget] = useState(5);
+  const [currency, setCurrency] = useState('XAF');
+  const [bwPrice, setBwPrice] = useState(25);
+  const [colorPrice, setColorPrice] = useState(100);
+  const [budget, setBudget] = useState(1000);
   const [school, setSchool] = useState('');
   const [country, setCountry] = useState('');
   const [professor, setProfessor] = useState('');
@@ -108,10 +108,6 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
       };
 
       try {
-          // Temporarily remove scale transform for capture if needed, 
-          // but html2canvas captures the DOM state. 
-          // We need to capture the 'unscaled' version ideally.
-          // Since we apply transform on the wrapper, we capture the inner content which is full size.
           const sections = reportRef.current.querySelectorAll('.pdf-section');
           
           for (let i = 0; i < sections.length; i++) {
@@ -166,12 +162,36 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
                 <>
                     <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Thème" value={topic} onChange={e => setTopic(e.target.value)} />
                     <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Niveau d'étude" value={level} onChange={e => setLevel(e.target.value)} />
-                    <div className="grid grid-cols-2 gap-2">
-                        <input className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Devise (€)" value={currency} onChange={e => setCurrency(e.target.value)} />
-                        <input className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Budget" type="number" value={budget} onChange={e => setBudget(parseFloat(e.target.value))} />
-                        <input className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Prix N&B" type="number" value={bwPrice} onChange={e => setBwPrice(parseFloat(e.target.value))} />
-                        <input className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Prix Coul." type="number" value={colorPrice} onChange={e => setColorPrice(parseFloat(e.target.value))} />
+                    
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold uppercase text-gray-400">Devise & Budget</label>
+                        <select 
+                            value={currency} 
+                            onChange={e => setCurrency(e.target.value)}
+                            className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
+                        >
+                            <option value="XAF">FCFA (XAF)</option>
+                            <option value="EUR">Euro (€)</option>
+                            <option value="USD">Dollar ($)</option>
+                            <option value="CAD">Dollar (CAD)</option>
+                            <option value="GNF">Franc (GNF)</option>
+                        </select>
+                        <div className="grid grid-cols-2 gap-2">
+                            <div className="flex flex-col">
+                                <label className="text-[10px] text-gray-400">Budget Total</label>
+                                <input className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" type="number" value={budget} onChange={e => setBudget(parseFloat(e.target.value))} />
+                            </div>
+                            <div className="flex flex-col">
+                                <label className="text-[10px] text-gray-400">Prix page N&B</label>
+                                <input className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" type="number" value={bwPrice} onChange={e => setBwPrice(parseFloat(e.target.value))} />
+                            </div>
+                            <div className="flex flex-col col-span-2">
+                                <label className="text-[10px] text-gray-400">Prix page Couleur</label>
+                                <input className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" type="number" value={colorPrice} onChange={e => setColorPrice(parseFloat(e.target.value))} />
+                            </div>
+                        </div>
                     </div>
+
                     <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Établissement" value={school} onChange={e => setSchool(e.target.value)} />
                     <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Pays" value={country} onChange={e => setCountry(e.target.value)} />
                     <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Professeur" value={professor} onChange={e => setProfessor(e.target.value)} />
@@ -268,13 +288,29 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
                              </div>
                          )}
 
-                         {/* 2. Introduction - PDF Section */}
+                         {/* 2. TOC - PDF Section (NEW) */}
+                         {result.content.toc && result.content.toc.length > 0 && (
+                             <div className="pdf-section w-[210mm] min-h-[297mm] p-12 bg-white">
+                                 <h2 className="text-3xl font-bold mb-8 text-center uppercase tracking-wider">Sommaire</h2>
+                                 <div className="space-y-4">
+                                     {result.content.toc.map((item, i) => (
+                                         <div key={i} className="flex items-end">
+                                             <span className="font-medium text-lg bg-white pr-2 z-10">{item.title}</span>
+                                             <div className="flex-1 border-b-2 border-dotted border-gray-400 mb-1 mx-2"></div>
+                                             <span className="font-bold text-lg bg-white pl-2 z-10">{item.page}</span>
+                                         </div>
+                                     ))}
+                                 </div>
+                             </div>
+                         )}
+
+                         {/* 3. Introduction - PDF Section */}
                          <div className="pdf-section w-[210mm] min-h-[297mm] p-12 bg-white">
                              <h2 className="text-2xl font-bold mb-6 border-b-2 border-black pb-2">Introduction</h2>
                              <p className="whitespace-pre-wrap text-justify leading-relaxed text-lg">{result.content.introduction}</p>
                          </div>
 
-                         {/* 3. Sections - PDF Sections */}
+                         {/* 4. Sections - PDF Sections */}
                          {result.content.sections.map((sec, i) => (
                              <div key={i} className="pdf-section w-[210mm] min-h-[297mm] p-12 bg-white">
                                  <h3 className="text-xl font-bold mb-4 flex items-center gap-2 border-l-4 border-purple-600 pl-4">
@@ -290,13 +326,13 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
                              </div>
                          ))}
 
-                         {/* 4. Conclusion - PDF Section */}
+                         {/* 5. Conclusion - PDF Section */}
                          <div className="pdf-section w-[210mm] min-h-[297mm] p-12 bg-white">
                              <h2 className="text-2xl font-bold mb-6 border-b-2 border-black pb-2">Conclusion</h2>
                              <p className="whitespace-pre-wrap text-justify leading-relaxed text-lg">{result.content.conclusion}</p>
                          </div>
                          
-                         {/* 5. Bibliography - PDF Section */}
+                         {/* 6. Bibliography - PDF Section */}
                          {result.content.bibliography && (
                              <div className="pdf-section w-[210mm] min-h-[297mm] p-12 bg-white">
                                  <h2 className="text-2xl font-bold mb-6 border-b-2 border-black pb-2">Bibliographie</h2>

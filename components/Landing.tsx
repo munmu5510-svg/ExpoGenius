@@ -53,7 +53,15 @@ export const Landing = ({ onGetStarted }: { onGetStarted: () => void }) => {
                     <Phone size={24} />
                 </div>
                 <h3 className="text-xl font-bold mb-2">Support WhatsApp</h3>
-                <p className="text-gray-500">Une question ? Contactez-nous directement au +240 555 320 354.</p>
+                <p className="text-gray-500">Une question ? Rejoignez notre communauté.</p>
+                <a 
+                    href="https://chat.whatsapp.com/k1T86s9DT4I7Yfg55xs6rc?mode=wwt" 
+                    target="_blank" 
+                    rel="noreferrer"
+                    className="mt-2 inline-block text-green-600 font-bold hover:underline"
+                >
+                    Rejoindre le groupe
+                </a>
             </div>
         </div>
       </section>
@@ -64,7 +72,7 @@ export const Landing = ({ onGetStarted }: { onGetStarted: () => void }) => {
              <a href="https://facebook.com/WordShelter" target="_blank" className="p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700">
                  <Facebook size={20} />
              </a>
-             <a href="#" className="p-2 bg-green-500 text-white rounded-full hover:bg-green-600">
+             <a href="https://chat.whatsapp.com/k1T86s9DT4I7Yfg55xs6rc?mode=wwt" target="_blank" className="p-2 bg-green-500 text-white rounded-full hover:bg-green-600">
                  <Phone size={20} />
              </a>
          </div>

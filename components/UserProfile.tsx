@@ -49,6 +49,10 @@ export const UserProfile = ({ user, onBack, onUpdateUser, onLogout }: UserProfil
       { id: 'pro_plus', name: 'Pro+', price: '$5 / pack', features: ['Tout Standard', 'Pack Complet (PDF+PPT+Speech)', 'Questions-Réponses'] }
   ];
 
+  const handleSubscriptionClick = () => {
+      window.open('https://chat.whatsapp.com/k1T86s9DT4I7Yfg55xs6rc?mode=wwt', '_blank');
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
@@ -133,9 +137,7 @@ export const UserProfile = ({ user, onBack, onUpdateUser, onLogout }: UserProfil
                                     <button disabled className="w-full py-2 bg-gray-200 text-gray-500 rounded font-bold text-sm">Actuel</button>
                                 ) : (
                                     <button 
-                                        onClick={() => {
-                                            alert(`Pour souscrire à ${p.name}, envoyez le montant par crédit au +240 555 320 354 et contactez le support.`);
-                                        }}
+                                        onClick={handleSubscriptionClick}
                                         className="w-full py-2 border border-purple-600 text-purple-600 hover:bg-purple-600 hover:text-white transition rounded font-bold text-sm"
                                     >
                                         Souscrire

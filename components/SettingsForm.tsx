@@ -1,6 +1,6 @@
 import React from 'react';
 import { UserSettings } from '../types';
-import { FileText, Coins, Printer, Palette, Sparkles, GraduationCap, Banknote } from 'lucide-react';
+import { FileText, Coins, Printer, Palette, Sparkles, GraduationCap, Banknote, Type } from 'lucide-react';
 
 interface SettingsFormProps {
   settings: UserSettings;
@@ -16,8 +16,17 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
   isLoading,
 }) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
     
+    if (type === 'checkbox') {
+        const checked = (e.target as HTMLInputElement).checked;
+        setSettings((prev) => ({
+            ...prev,
+            [name]: checked,
+        }));
+        return;
+    }
+
     // Handle string inputs vs number inputs
     let newValue: string | number = value;
     if (['bwPrice', 'colorPrice', 'budget'].includes(name)) {
@@ -125,6 +134,39 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-green-50 font-semibold text-green-700"
             />
           </div>
+        </div>
+
+        <div className="bg-blue-50 rounded-xl p-4 border border-blue-100 flex items-center gap-3">
+            <div className="bg-white p-2 rounded-lg text-blue-600 shadow-sm">
+                <Type size={20} />
+            </div>
+            <div className="flex-1">
+                <label htmlFor="enableFormatting" className="text-sm font-semibold text-gray-800 cursor-pointer select-none">
+                    Mise en forme enrichie
+                </label>
+                <p className="text-xs text-blue-600">Activez pour inclure gras, italique et listes à puces.</p>
+            </div>
+            <div className="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                <input 
+                    type="checkbox" 
+                    name="enableFormatting" 
+                    id="enableFormatting" 
+                    checked={settings.enableFormatting}
+                    onChange={handleChange}
+                    className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-transform duration-200 ease-in-out checked:translate-x-full checked:border-blue-600"
+                    style={{
+                        top: 0,
+                        left: 0,
+                        backgroundColor: settings.enableFormatting ? '#2563EB' : 'white',
+                        borderColor: settings.enableFormatting ? '#2563EB' : '#E5E7EB',
+                    }}
+                />
+                <label 
+                    htmlFor="enableFormatting" 
+                    className="toggle-label block overflow-hidden h-6 rounded-full bg-gray-200 cursor-pointer"
+                    style={{ backgroundColor: settings.enableFormatting ? '#BFDBFE' : '#E5E7EB' }}
+                ></label>
+            </div>
         </div>
 
         <button

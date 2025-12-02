@@ -1,0 +1,117 @@
+import React from 'react';
+import { User, ViewState } from '../types';
+import { Sparkles, Bell, User as UserIcon, LogOut, Sun, Moon, Search, Plus, List } from 'lucide-react';
+import { backend } from '../services/mockBackend';
+
+interface DashboardProps {
+  user: User;
+  onNavigate: (view: ViewState) => void;
+  onLogout: () => void;
+  theme: 'light' | 'dark';
+  toggleTheme: () => void;
+}
+
+export const Dashboard = ({ user, onNavigate, onLogout, theme, toggleTheme }: DashboardProps) => {
+  const docs = backend.getUserDocuments(user.id);
+  const notifications = backend.getNotifications();
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white transition-colors">
+      {/* Top Bar */}
+      <header className="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-10 px-4 py-3 flex justify-between items-center">
+        <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full wos-gradient flex items-center justify-center text-white font-serif font-bold">W</div>
+            <span className="font-bold text-lg hidden md:block">WordShelter</span>
+        </div>
+        
+        <div className="flex items-center gap-3">
+            <div className="px-3 py-1 bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-200 rounded-full text-xs font-semibold uppercase">
+                {user.plan}
+            </div>
+            <div className="text-xs text-gray-500">
+                {user.generationsLimit - user.generationsUsed} left
+            </div>
+            <button onClick={toggleTheme} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
+                {theme === 'light' ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+            <div className="relative">
+                <Bell size={20} className="text-gray-600 dark:text-gray-300" />
+                {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>}
+            </div>
+            <button onClick={() => onNavigate('profile')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
+                <UserIcon size={20} />
+            </button>
+            <button onClick={onLogout} className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 rounded-full">
+                <LogOut size={20} />
+            </button>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="p-4 md:p-8 max-w-7xl mx-auto">
+        <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+            <div className="relative w-full md:w-96">
+                <Search className="absolute left-3 top-3 text-gray-400" size={18} />
+                <input 
+                    type="text" 
+                    placeholder="Rechercher une production..." 
+                    className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 outline-none focus:ring-2 focus:ring-purple-500"
+                />
+            </div>
+            <div className="flex gap-2 w-full md:w-auto">
+                <button className="p-2 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg">
+                    <List size={20} />
+                </button>
+                <button 
+                    onClick={() => onNavigate('clipboard')}
+                    className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 wos-gradient text-white rounded-lg font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all"
+                >
+                    <Plus size={20} />
+                    Nouveau
+                </button>
+            </div>
+        </div>
+
+        {/* AI Assistant FAB (Conceptual) */}
+        <div className="fixed bottom-6 right-6 z-20">
+             <button className="w-14 h-14 rounded-full bg-black dark:bg-white text-white dark:text-black shadow-2xl flex items-center justify-center hover:scale-110 transition-transform">
+                 <Sparkles size={24} />
+             </button>
+        </div>
+
+        {/* Grid */}
+        {docs.length === 0 ? (
+            <div className="text-center py-20 opacity-50">
+                <div className="mx-auto w-20 h-20 bg-gray-200 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+                    <List size={32} />
+                </div>
+                <p>Aucune production pour le moment.</p>
+                <p className="text-sm">Cliquez sur Nouveau pour commencer.</p>
+            </div>
+        ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {docs.map((doc: any, i: number) => (
+                    <div key={i} className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+                        <div className="flex justify-between items-start mb-4">
+                            <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${
+                                doc.type === 'expose' ? 'bg-blue-100 text-blue-600' : 
+                                doc.type === 'dissertation' ? 'bg-orange-100 text-orange-600' : 
+                                'bg-green-100 text-green-600'
+                            }`}>
+                                {doc.type}
+                            </span>
+                            <span className="text-xs text-gray-400">{new Date(doc.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        <h3 className="font-bold text-lg mb-2 line-clamp-2">{doc.title}</h3>
+                        <p className="text-sm text-gray-500 line-clamp-3 mb-4">
+                            {doc.content.introduction?.substring(0, 100)}...
+                        </p>
+                    </div>
+                ))}
+            </div>
+        )}
+      </main>
+    </div>
+  );
+};

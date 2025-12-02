@@ -1,91 +1,141 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { ExposeContent, UserSettings } from "../types";
+import { GenerationConfig, GeneratedContent } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-export const generateExpose = async (settings: UserSettings): Promise<ExposeContent> => {
-  const modelId = "gemini-2.5-flash";
+export const generateDocument = async (config: GenerationConfig, userName: string): Promise<GeneratedContent> => {
+  const modelId = "gemini-2.5-flash"; // Using flash for speed and cost efficiency as per request
 
-  const prompt = `
-    Tu es un assistant expert pour la rédaction d'exposés scolaires et professionnels.
-    
-    L'utilisateur souhaite un exposé sur le sujet : "${settings.topic}".
-    Niveau scolaire / d'étude cible : "${settings.educationLevel || "Standard"}". (Adapte le ton, le vocabulaire et la complexité).
-    
-    Contraintes budgétaires :
-    - Budget total : ${settings.budget} ${settings.currency}
-    - Prix impression Noir & Blanc : ${settings.bwPrice} ${settings.currency}/page
-    - Prix impression Couleur : ${settings.colorPrice} ${settings.currency}/page
-    
-    Tâche :
-    1. Calcule approximativement combien de pages l'utilisateur peut imprimer avec son budget.
-    2. Rédige un exposé complet et structuré qui tient compte de cette contrainte de longueur.
-    3. Si le budget est large, propose des sections avec des suggestions visuelles riches (qui nécessitent la couleur). Si le budget est serré, reste concis et focalise sur le texte.
-    4. Fournis une bibliographie pertinente adaptée au niveau scolaire.
-    
-    Génère la réponse au format JSON strict avec la structure suivante :
-    {
-      "title": "Titre de l'exposé",
-      "introduction": "Paragraphe d'introduction",
-      "sections": [
-        { 
-          "heading": "Titre de la section", 
-          "content": "Contenu détaillé de la section (environ 200-400 mots selon budget)", 
-          "visualSuggestion": "Description d'une image ou graphique pertinent",
-          "isColor": boolean (true si cette section bénéficie grandement de l'impression couleur pour le visuel suggéré, false sinon)
-        }
-      ],
-      "conclusion": "Paragraphe de conclusion",
-      "bibliography": ["Source 1", "Source 2", "Source 3"],
-      "estimatedPages": nombre (estimation du nombre de pages A4),
-      "recommendation": "Conseil court à l'utilisateur concernant l'impression (ex: 'Vu votre budget, imprimez tout en N&B sauf la page 2')."
-    }
-  `;
+  let prompt = "";
+  let systemInstruction = "You are WordShelter AI, a professional academic writing assistant.";
+
+  if (config.type === 'expose') {
+    prompt = `
+      Génère un exposé structuré sur le thème : "${config.topic}".
+      Contexte :
+      - Niveau : ${config.level || "Standard"}
+      - Pays : ${config.country || "Non spécifié"}
+      - Établissement : ${config.school || "Non spécifié"}
+      - Budget impression : ${config.budget} ${config.currency} (Prix N&B: ${config.bwPrice}, Couleur: ${config.colorPrice}). Adapte la longueur et l'usage de la couleur (images) selon ce budget.
+      
+      Structure requise (JSON) :
+      1. Infos de couverture (titre, sous-titre).
+      2. Sommaire (estime les pages).
+      3. Introduction.
+      4. Sections détaillées (titre, contenu, suggestions visuelles). Marque les termes techniques ou importants.
+      5. Conclusion.
+      6. Bibliographie.
+      7. (Bonus) 5 Questions-Réponses pertinentes pour préparer l'oral.
+      8. (Bonus) Un petit discours de présentation (speech).
+      9. Estimation du nombre de pages (chiffre entier).
+      10. Recommandation IA courte pour l'élève.
+    `;
+  } else if (config.type === 'dissertation') {
+    prompt = `
+      Rédige une dissertation complète.
+      Sujet/Citation : "${config.citation || config.topic}".
+      Consigne : "${config.instructions || "Traiter le sujet de manière dialectique ou analytique selon pertinence."}".
+      Longueur visée : Environ ${config.pageCount || 3} pages.
+      Structure : Introduction (Amorce, Problématique, Annonce plan), Développement (Thèse, Antithèse, Synthèse ou Thématique), Conclusion.
+      Inclus une estimation du nombre de pages et une recommandation.
+    `;
+  } else if (config.type === 'argumentation') {
+    prompt = `
+      Rédige un texte argumentatif sur : "${config.topic}".
+      Consigne : "${config.instructions}".
+      Longueur : ${config.pageCount || 2} pages.
+      Structure : Introduction, Arguments Pour/Contre structurés, Conclusion.
+      Inclus une estimation du nombre de pages et une recommandation.
+    `;
+  }
+
+  // Common Schema for all types to simplify parsing
+  const responseSchema = {
+    type: Type.OBJECT,
+    properties: {
+      title: { type: Type.STRING },
+      content: {
+        type: Type.OBJECT,
+        properties: {
+          cover: {
+            type: Type.OBJECT,
+            properties: {
+              title: { type: Type.STRING },
+              subtitle: { type: Type.STRING },
+              countrySymbol: { type: Type.STRING, description: "Nom du symbole ou devise du pays" },
+              schoolName: { type: Type.STRING }
+            }
+          },
+          toc: {
+             type: Type.ARRAY,
+             items: {
+                 type: Type.OBJECT,
+                 properties: { title: {type: Type.STRING}, page: {type: Type.NUMBER}}
+             }
+          },
+          introduction: { type: Type.STRING },
+          sections: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                heading: { type: Type.STRING },
+                subheading: { type: Type.STRING },
+                content: { type: Type.STRING },
+                visualSuggestion: { type: Type.STRING },
+                isColor: { type: Type.BOOLEAN },
+                isImportant: { type: Type.BOOLEAN },
+              },
+              required: ["heading", "content"]
+            }
+          },
+          conclusion: { type: Type.STRING },
+          bibliography: { type: Type.ARRAY, items: { type: Type.STRING } },
+          qa: { 
+              type: Type.ARRAY, 
+              items: { type: Type.OBJECT, properties: { question: {type: Type.STRING}, answer: {type: Type.STRING} }}
+          },
+          speech: { type: Type.STRING },
+          estimatedPages: { type: Type.NUMBER, description: "Estimation du nombre de pages du document" },
+          recommendation: { type: Type.STRING, description: "Conseil court pour l'élève" }
+        },
+        required: ["introduction", "sections", "conclusion", "estimatedPages"]
+      }
+    },
+    required: ["title", "content"]
+  };
 
   try {
     const response = await ai.models.generateContent({
       model: modelId,
       contents: prompt,
       config: {
+        systemInstruction: systemInstruction,
         responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            title: { type: Type.STRING },
-            introduction: { type: Type.STRING },
-            sections: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  heading: { type: Type.STRING },
-                  content: { type: Type.STRING },
-                  visualSuggestion: { type: Type.STRING },
-                  isColor: { type: Type.BOOLEAN },
-                },
-                required: ["heading", "content", "isColor"],
-              },
-            },
-            conclusion: { type: Type.STRING },
-            bibliography: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING },
-            },
-            estimatedPages: { type: Type.NUMBER },
-            recommendation: { type: Type.STRING },
-          },
-          required: ["title", "introduction", "sections", "conclusion", "bibliography", "estimatedPages", "recommendation"],
-        },
+        responseSchema: responseSchema,
       },
     });
 
     if (response.text) {
-      return JSON.parse(response.text) as ExposeContent;
+      const parsed = JSON.parse(response.text);
+      // Inject user data into cover if it exists
+      if (parsed.content.cover) {
+          parsed.content.cover.studentName = userName;
+          parsed.content.cover.professorName = config.professor;
+          parsed.content.cover.date = config.date;
+          if(!parsed.content.cover.schoolName) parsed.content.cover.schoolName = config.school;
+      }
+      return {
+          type: config.type,
+          title: parsed.title,
+          content: parsed.content,
+          createdAt: Date.now()
+      };
     } else {
-      throw new Error("Réponse vide de l'IA.");
+      throw new Error("Empty response from AI");
     }
   } catch (error) {
-    console.error("Erreur lors de la génération de l'exposé :", error);
+    console.error("Gemini Error:", error);
     throw error;
   }
 };

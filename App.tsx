@@ -1,154 +1,109 @@
 import React, { useState, useEffect } from 'react';
-import { SettingsForm } from './components/SettingsForm';
-import { ReportView } from './components/ReportView';
-import { HistoryList } from './components/HistoryList';
-import { ExposeContent, UserSettings, HistoryItem } from './types';
-import { generateExpose } from './services/geminiService';
-import { BookOpen } from 'lucide-react';
+import { ViewState, User, DocType, GeneratedContent, GenerationConfig } from './types';
+import { backend } from './services/mockBackend';
+import { generateDocument } from './services/geminiService';
+
+// Components (We will define these inside App.tsx or separate files if allowed, 
+// but for the sake of the instructions to "update files", I will inline small components 
+// and assume complex ones are built out in the changes block or put logic here)
+import { Splash } from './components/Splash';
+import { Landing } from './components/Landing';
+import { Auth } from './components/Auth';
+import { Dashboard } from './components/Dashboard';
+import { Clipboard } from './components/Clipboard';
+import { UserProfile } from './components/UserProfile';
+import { AdminPanel } from './components/AdminPanel';
 
 export default function App() {
-  const [settings, setSettings] = useState<UserSettings>({
-    topic: '',
-    educationLevel: '',
-    currency: '€',
-    bwPrice: 0.10,
-    colorPrice: 0.50,
-    budget: 5.00,
-  });
+  const [view, setView] = useState<ViewState>('splash');
+  const [user, setUser] = useState<User | null>(null);
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [lang, setLang] = useState('en');
 
-  const [content, setContent] = useState<ExposeContent | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [history, setHistory] = useState<HistoryItem[]>([]);
-
-  // Load history from local storage on mount
+  // Load Initial State
   useEffect(() => {
-    const savedHistory = localStorage.getItem('exposeHistory');
-    if (savedHistory) {
-      try {
-        setHistory(JSON.parse(savedHistory));
-      } catch (e) {
-        console.error("Failed to parse history", e);
-      }
+    // Language
+    const browserLang = navigator.language.startsWith('fr') ? 'fr' : 'en';
+    setLang(browserLang);
+
+    // Theme
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        setTheme('dark');
+        document.body.classList.add('dark');
     }
+
+    // Splash Timer
+    setTimeout(() => {
+        const currentUser = backend.getCurrentUser();
+        if (currentUser) {
+            setUser(currentUser);
+            setView('dashboard');
+        } else {
+            setView('landing');
+        }
+    }, 2500);
   }, []);
 
-  // Save history helper
-  const saveHistory = (newHistory: HistoryItem[]) => {
-    setHistory(newHistory);
-    localStorage.setItem('exposeHistory', JSON.stringify(newHistory));
-  };
-
-  const addToHistory = (settings: UserSettings, content: ExposeContent) => {
-    const newItem: HistoryItem = {
-        id: Date.now().toString(),
-        timestamp: Date.now(),
-        settings: { ...settings }, // Copy settings
-        content: content
-    };
-    const updatedHistory = [newItem, ...history];
-    saveHistory(updatedHistory);
-  };
-
-  const handleGenerate = async () => {
-    setIsLoading(true);
-    setError(null);
-    setContent(null);
-
-    try {
-      const result = await generateExpose(settings);
-      setContent(result);
-      addToHistory(settings, result);
-    } catch (err) {
-      setError("Une erreur est survenue lors de la génération de l'exposé. Veuillez vérifier votre clé API ou réessayer plus tard.");
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSelectHistory = (item: HistoryItem) => {
-      setSettings(item.settings);
-      setContent(item.content);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleDeleteHistory = (id: string, e: React.MouseEvent) => {
-      e.stopPropagation();
-      const updatedHistory = history.filter(item => item.id !== id);
-      saveHistory(updatedHistory);
-  };
-
-  const handleClearHistory = () => {
-      if(window.confirm("Voulez-vous vraiment effacer tout l'historique ?")) {
-        saveHistory([]);
+  const toggleTheme = () => {
+      if (theme === 'light') {
+          setTheme('dark');
+          document.body.classList.add('dark');
+      } else {
+          setTheme('light');
+          document.body.classList.remove('dark');
       }
   };
 
-  const resetForm = () => {
-    setContent(null);
+  // View Routing
+  const renderView = () => {
+    switch(view) {
+        case 'splash': return <Splash />;
+        case 'landing': return <Landing onGetStarted={() => setView('auth')} />;
+        case 'auth': return <Auth onLogin={(u) => { setUser(u); setView('dashboard'); }} />;
+        case 'dashboard': 
+            return <Dashboard 
+                user={user!} 
+                onNavigate={setView} 
+                onLogout={() => { backend.logout(); setUser(null); setView('auth'); }}
+                theme={theme}
+                toggleTheme={toggleTheme}
+            />;
+        case 'clipboard': 
+            return <Clipboard 
+                user={user!} 
+                onBack={() => setView('dashboard')} 
+                onGenerate={async (config) => {
+                    if (user!.generationsUsed >= user!.generationsLimit) {
+                        alert("Limite atteinte ! Passez à Standard.");
+                        return null;
+                    }
+                    const doc = await generateDocument(config, user!.name);
+                    backend.saveDocument(doc, user!.id);
+                    const updatedUser = { ...user!, generationsUsed: user!.generationsUsed + 1 };
+                    backend.updateUser(updatedUser);
+                    setUser(updatedUser);
+                    return doc;
+                }}
+            />;
+        case 'profile':
+            return <UserProfile 
+                user={user!} 
+                onBack={() => setView('dashboard')}
+                onUpdateUser={(u) => { backend.updateUser(u); setUser(u); }}
+                onLogout={() => { backend.logout(); setUser(null); setView('auth'); }}
+            />;
+        case 'admin':
+            return <AdminPanel 
+                user={user!} 
+                onBack={() => setView('dashboard')} 
+            />;
+        default: return <Landing onGetStarted={() => setView('auth')} />;
+    }
   };
 
   return (
-    <div className="min-h-screen pb-20">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 py-4 mb-8 sticky top-0 z-50 shadow-sm no-print">
-        <div className="container mx-auto px-4 flex items-center justify-between">
-            <div className="flex items-center gap-3 cursor-pointer" onClick={resetForm}>
-                <div className="bg-gradient-to-br from-blue-600 to-indigo-600 text-white p-2 rounded-lg">
-                    <BookOpen size={24} />
-                </div>
-                <div>
-                    <h1 className="text-xl font-bold text-gray-900 tracking-tight">ExpoGenius</h1>
-                    <p className="text-xs text-gray-500">Générateur d'exposé budget-friendly</p>
-                </div>
-            </div>
-            {content && (
-                 <button 
-                 onClick={resetForm}
-                 className="text-sm text-gray-600 hover:text-blue-600 font-medium transition-colors"
-               >
-                 Nouvel exposé
-               </button>
-            )}
-        </div>
-      </header>
-
-      <main className="container mx-auto px-4">
-        {!content ? (
-          <div className="animate-fade-in-up">
-            <div className="text-center mb-10 max-w-2xl mx-auto">
-                <h2 className="text-4xl font-extrabold text-gray-900 mb-4">Créez des exposés parfaits,<br/><span className="text-blue-600">sans dépasser votre budget.</span></h2>
-                <p className="text-lg text-gray-600">
-                    Entrez votre sujet, votre niveau scolaire et vos coûts d'impression. Notre IA rédige le contenu et adapte la longueur pour que vous puissiez imprimer sans surprise.
-                </p>
-            </div>
-            
-            <SettingsForm 
-                settings={settings} 
-                setSettings={setSettings} 
-                onGenerate={handleGenerate} 
-                isLoading={isLoading} 
-            />
-
-            {error && (
-                <div className="max-w-2xl mx-auto mt-4 p-4 bg-red-50 text-red-700 rounded-xl border border-red-200 flex items-center gap-3">
-                    <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"></path></svg>
-                    {error}
-                </div>
-            )}
-
-            <HistoryList 
-                history={history} 
-                onSelect={handleSelectHistory} 
-                onClear={handleClearHistory}
-                onDelete={handleDeleteHistory}
-            />
-          </div>
-        ) : (
-          <ReportView content={content} settings={settings} />
-        )}
-      </main>
+    <div className={`min-h-screen ${theme === 'dark' ? 'dark' : ''}`}>
+       {renderView()}
     </div>
   );
 }

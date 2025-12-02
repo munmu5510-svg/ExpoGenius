@@ -9,6 +9,72 @@ interface ReportViewProps {
   settings: UserSettings;
 }
 
+// Simple Markdown Formatter Component
+const FormattedText: React.FC<{ text: string }> = ({ text }) => {
+  if (!text) return null;
+
+  // Split text into paragraphs and lists
+  // A rough parser: split by newlines. If a line starts with - or *, it's a list item.
+  // Otherwise it's a paragraph.
+  const lines = text.split('\n');
+  const elements: React.ReactNode[] = [];
+  
+  let currentList: React.ReactNode[] = [];
+  let inList = false;
+
+  const parseInline = (line: string): React.ReactNode[] => {
+    // Regex for bold (**text**) and italic (*text*)
+    // We split the string by tags to preserve order
+    const parts = line.split(/(\*\*.*?\*\*|\*.*?\*)/g);
+    return parts.map((part, index) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+            return <strong key={index} className="font-bold text-gray-900">{part.slice(2, -2)}</strong>;
+        } else if (part.startsWith('*') && part.endsWith('*')) {
+            return <em key={index} className="italic text-gray-800">{part.slice(1, -1)}</em>;
+        } else if (part.startsWith('__') && part.endsWith('__')) { // Handle alt bold
+             return <strong key={index} className="font-bold text-gray-900">{part.slice(2, -2)}</strong>;
+        } else if (part.startsWith('_') && part.endsWith('_')) { // Handle alt italic
+             return <em key={index} className="italic text-gray-800">{part.slice(1, -1)}</em>;
+        }
+        return part;
+    });
+  };
+
+  lines.forEach((line, i) => {
+    const trimmed = line.trim();
+    if (!trimmed) {
+        if (inList) {
+             elements.push(<ul key={`list-${i}`} className="list-disc pl-5 mb-4 space-y-1">{currentList}</ul>);
+             currentList = [];
+             inList = false;
+        }
+        return; // Skip empty lines between paragraphs
+    }
+
+    const isListItem = trimmed.startsWith('- ') || trimmed.startsWith('* ');
+
+    if (isListItem) {
+        inList = true;
+        const content = trimmed.substring(2);
+        currentList.push(<li key={`item-${i}`}>{parseInline(content)}</li>);
+    } else {
+        if (inList) {
+            elements.push(<ul key={`list-${i}`} className="list-disc pl-5 mb-4 space-y-1">{currentList}</ul>);
+            currentList = [];
+            inList = false;
+        }
+        elements.push(<p key={`p-${i}`} className="text-justify leading-relaxed text-gray-700 mb-4">{parseInline(trimmed)}</p>);
+    }
+  });
+
+  // Flush remaining list
+  if (inList) {
+     elements.push(<ul key={`list-end`} className="list-disc pl-5 mb-4 space-y-1">{currentList}</ul>);
+  }
+
+  return <>{elements}</>;
+};
+
 export const ReportView: React.FC<ReportViewProps> = ({ content, settings }) => {
   const reportRef = useRef<HTMLDivElement>(null);
 
@@ -128,7 +194,9 @@ export const ReportView: React.FC<ReportViewProps> = ({ content, settings }) => 
         {/* Introduction */}
         <div className="mb-8">
             <h3 className="text-xl font-bold border-l-4 border-blue-600 pl-3 mb-3 text-gray-900">Introduction</h3>
-            <p className="text-justify leading-relaxed text-gray-700 whitespace-pre-wrap">{content.introduction}</p>
+            <div className="text-gray-700">
+                <FormattedText text={content.introduction} />
+            </div>
         </div>
 
         {/* Dynamic Sections */}
@@ -143,9 +211,9 @@ export const ReportView: React.FC<ReportViewProps> = ({ content, settings }) => 
                             </span>
                         )}
                     </h3>
-                    <p className="text-justify leading-relaxed text-gray-700 mb-4 whitespace-pre-wrap">
-                        {section.content}
-                    </p>
+                    <div className="text-gray-700 mb-4">
+                        <FormattedText text={section.content} />
+                    </div>
                     
                     {/* Visual Placeholder */}
                     {section.visualSuggestion && (
@@ -168,7 +236,9 @@ export const ReportView: React.FC<ReportViewProps> = ({ content, settings }) => 
         {/* Conclusion */}
         <div className="mt-8 pt-6 border-t border-gray-200 page-break-inside-avoid">
             <h3 className="text-xl font-bold border-l-4 border-green-600 pl-3 mb-3 text-gray-900">Conclusion</h3>
-            <p className="text-justify leading-relaxed text-gray-700 whitespace-pre-wrap">{content.conclusion}</p>
+            <div className="text-gray-700">
+                <FormattedText text={content.conclusion} />
+            </div>
         </div>
 
         {/* Bibliography */}

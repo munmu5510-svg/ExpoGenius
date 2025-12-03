@@ -3,12 +3,48 @@ import { GenerationConfig, GeneratedContent } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
+// --- CONNAISSANCES DE WOS AI ---
+const WOS_SYSTEM_INSTRUCTION = `
+Tu es WOS AI, l'assistant intelligent et le guide officiel de l'application "WordPoz".
+
+TON RÔLE :
+1. Aider les élèves/étudiants dans la rédaction académique et la recherche d'idées.
+2. Guider les utilisateurs pas à pas dans l'utilisation de l'application WordPoz.
+3. Expliquer les fonctionnalités, les problèmes courants et les formules d'abonnement.
+
+À PROPOS DE WORDPOZ :
+WordPoz est une application innovante qui génère des documents scolaires (Exposés, Dissertations, Argumentations) optimisés selon le budget d'impression de l'utilisateur.
+
+GUIDE D'UTILISATION (Ce que tu dois savoir) :
+- **Dashboard (Accueil)** : C'est là que l'utilisateur voit ses documents récents. Il peut cliquer sur le menu (liste) à côté du bouton "+" pour Supprimer, Renommer ou utiliser un document comme modèle.
+- **Création (Clipboard)** : En cliquant sur "Nouveau" ou le bouton "+", l'utilisateur accède au formulaire.
+  - Il peut choisir : Exposé, Dissertation ou Argumentation.
+  - Il peut importer les logos de son établissement et de son pays via l'icône trombone (Paperclip) pour une page de garde professionnelle.
+  - **Spécificité WordPoz** : L'utilisateur entre son BUDGET total et le prix d'impression (N&B et Couleur). L'IA optimise le document pour ne pas dépasser ce coût.
+- **Export** : Une fois généré, le document peut être téléchargé en PDF (format A4 standard) ou partagé via texte.
+
+LES FORMULES (ABONNEMENTS) :
+1. **Freemium** : Gratuit. Limité à 6 générations. Idéal pour tester.
+2. **Standard** : Générations illimitées, export PDF, support prioritaire.
+3. **Pro+** : Le pack ultime. Inclut tout le Standard + Génération automatique de Questions/Réponses (Q&A) pour préparer l'oral + Rédaction d'un Discours (Speech) de présentation.
+
+PROCÉDURE DE PAIEMENT :
+Si un utilisateur demande comment payer :
+"Allez dans votre Profil (icône utilisateur en haut à droite), choisissez une formule (Standard ou Pro+), et cliquez sur Souscrire. L'application ouvrira votre téléphone pour effectuer un transfert au numéro indiqué. Une fois fait, contactez le support."
+
+RÈGLES DE COMPORTEMENT :
+- Sois toujours courtois, encourageant, pédagogique et concis.
+- Si l'utilisateur a un problème technique (ex: PDF), conseille-lui de vérifier sa connexion ou de réessayer.
+- Ne mentionne **JAMAIS** l'existence du panneau Administrateur ou des codes promo de type "admin".
+- Si on te demande qui t'a créé, réponds simplement "L'équipe WordPoz".
+`;
+
 export const chatWithWosAI = async (message: string, history: {role: 'user' | 'model', parts: [{text: string}]}[]): Promise<string> => {
   try {
     const chat = ai.chats.create({
       model: "gemini-2.5-flash",
       config: {
-        systemInstruction: "You are WOS AI, the intelligent assistant for WordPoz. You help students with their writing projects, offer academic advice, and explain how to use the WordPoz app. Keep answers concise and helpful.",
+        systemInstruction: WOS_SYSTEM_INSTRUCTION,
       },
       history: history
     });
@@ -17,7 +53,7 @@ export const chatWithWosAI = async (message: string, history: {role: 'user' | 'm
     return response.text || "Désolé, je n'ai pas pu générer de réponse.";
   } catch (error) {
     console.error("Chat Error", error);
-    return "Une erreur est survenue lors de la communication avec WOS AI.";
+    return "Une erreur est survenue lors de la communication avec WOS AI. Vérifiez votre connexion.";
   }
 };
 
@@ -25,7 +61,8 @@ export const generateDocument = async (config: GenerationConfig, userName: strin
   const modelId = "gemini-2.5-flash"; // Using flash for speed and cost efficiency as per request
 
   let prompt = "";
-  let systemInstruction = "You are WordPoz AI, a professional academic writing assistant.";
+  // Instruction spécifique pour la génération de documents (différente du Chatbot)
+  let docSystemInstruction = "You are WordPoz AI, a professional academic writing assistant. Your goal is to produce high-quality, structured, and budget-optimized school documents.";
 
   if (config.type === 'expose') {
     prompt = `
@@ -43,10 +80,10 @@ export const generateDocument = async (config: GenerationConfig, userName: strin
       4. Sections détaillées (titre, contenu, suggestions visuelles). Marque les termes techniques ou importants.
       5. Conclusion.
       6. Bibliographie.
-      7. (Bonus) 5 Questions-Réponses pertinentes pour préparer l'oral.
-      8. (Bonus) Un petit discours de présentation (speech).
+      7. (Bonus - Pro+) 5 Questions-Réponses pertinentes pour préparer l'oral (même si non affiché en mode gratuit, génère-les).
+      8. (Bonus - Pro+) Un petit discours de présentation (speech) (même si non affiché en mode gratuit, génère-le).
       9. Estimation du nombre de pages (chiffre entier).
-      10. Recommandation IA courte pour l'élève.
+      10. Recommandation IA courte pour l'élève (ex: "Attention, ce sujet est vaste...").
     `;
   } else if (config.type === 'dissertation') {
     prompt = `
@@ -128,7 +165,7 @@ export const generateDocument = async (config: GenerationConfig, userName: strin
       model: modelId,
       contents: prompt,
       config: {
-        systemInstruction: systemInstruction,
+        systemInstruction: docSystemInstruction,
         responseMimeType: "application/json",
         responseSchema: responseSchema,
       },

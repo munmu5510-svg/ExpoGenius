@@ -363,5 +363,14 @@ export const backend = {
   
   getNotifications: (): Notification[] => {
       return JSON.parse(localStorage.getItem(KEYS.NOTIFS) || '[]');
+  },
+
+  markNotificationRead: (notifId: string) => {
+      const notifs = JSON.parse(localStorage.getItem(KEYS.NOTIFS) || '[]');
+      const index = notifs.findIndex((n: Notification) => n.id === notifId);
+      if (index !== -1) {
+          notifs[index].read = true;
+          localStorage.setItem(KEYS.NOTIFS, JSON.stringify(notifs));
+      }
   }
 };

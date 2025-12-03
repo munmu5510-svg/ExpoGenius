@@ -141,6 +141,7 @@ export const generateDocument = async (config: GenerationConfig, userName: strin
           parsed.content.cover.studentName = userName;
           parsed.content.cover.professorName = config.professor;
           parsed.content.cover.date = config.date;
+          parsed.content.cover.educationLevel = config.level; // Inject Level
           if(!parsed.content.cover.schoolName) parsed.content.cover.schoolName = config.school;
       }
       return {

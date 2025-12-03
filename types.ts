@@ -66,6 +66,7 @@ export interface ExposeContent {
     professorName?: string;
     date?: string;
     schoolName?: string;
+    educationLevel?: string;
   };
   toc?: { title: string; page: number }[];
   introduction: string;
@@ -91,6 +92,7 @@ export interface GeneratedContent {
       professorName?: string;
       date?: string;
       schoolName?: string;
+      educationLevel?: string;
     };
     toc?: { title: string; page: number }[];
     introduction: string;

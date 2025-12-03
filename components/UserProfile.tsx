@@ -57,8 +57,13 @@ export const UserProfile = ({ user, onBack, onNavigate, onUpdateUser, onLogout }
       { id: 'pro_plus', name: 'Pro+', price: '$5 / pack', features: ['Tout Standard', 'Pack Complet (PDF+PPT+Speech)', 'Questions-Réponses'] }
   ];
 
-  const handleSubscriptionClick = () => {
-      window.open('https://chat.whatsapp.com/k1T86s9DT4I7Yfg55xs6rc?mode=wwt', '_blank');
+  const handleSubscriptionClick = (planName: string) => {
+      const paymentNumber = "655555555"; // Exemple placeholder
+      const message = `Pour activer le plan ${planName}, veuillez effectuer un transfert au numéro : ${paymentNumber}.\n\nUne fois effectué, envoyez la capture d'écran au support.\n\nVoulez-vous ouvrir l'application téléphone ?`;
+      
+      if (confirm(message)) {
+          window.location.href = `tel:${paymentNumber}`;
+      }
   };
 
   return (
@@ -150,7 +155,7 @@ export const UserProfile = ({ user, onBack, onNavigate, onUpdateUser, onLogout }
                                     <button disabled className="w-full py-2 bg-gray-200 text-gray-500 rounded font-bold text-sm">Actuel</button>
                                 ) : (
                                     <button 
-                                        onClick={handleSubscriptionClick}
+                                        onClick={() => handleSubscriptionClick(p.name)}
                                         className="w-full py-2 border border-purple-600 text-purple-600 hover:bg-purple-600 hover:text-white transition rounded font-bold text-sm"
                                     >
                                         Souscrire

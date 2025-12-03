@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { User, DocType, GenerationConfig, GeneratedContent } from '../types';
-import { X, ChevronRight, Download, FileText, Printer, Share2, Menu } from 'lucide-react';
+import { X, ChevronRight, Download, FileText, Share2, Menu, Paperclip } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
@@ -18,6 +18,7 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [scale, setScale] = useState(1);
   const previewContainerRef = useRef<HTMLDivElement>(null);
+  const previousWidth = useRef<number>(window.innerWidth);
 
   // Form States
   const [topic, setTopic] = useState('');
@@ -31,6 +32,13 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
   const [country, setCountry] = useState('');
   const [professor, setProfessor] = useState('');
   const [date, setDate] = useState('');
+  
+  // Image Upload States
+  const [schoolLogo, setSchoolLogo] = useState<string | null>(null);
+  const [countryEmblem, setCountryEmblem] = useState<string | null>(null);
+  const schoolInputRef = useRef<HTMLInputElement>(null);
+  const countryInputRef = useRef<HTMLInputElement>(null);
+
   // Other
   const [citation, setCitation] = useState('');
   const [instructions, setInstructions] = useState('');
@@ -43,30 +51,55 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
     if (initialDoc) {
       setResult(initialDoc);
       setIsSidebarOpen(false); // Hide sidebar to show doc immediately
+      // If the doc has stored images (mock scenario), we would load them here
     }
   }, [initialDoc]);
 
-  // Mobile responsiveness for sidebar and document scaling
+  // Mobile responsiveness initialization ONLY
   useEffect(() => {
-    const handleResize = () => {
+    const handleLayout = () => {
         const width = window.innerWidth;
+        // Only trigger sidebar change if width changes (orientation change or desktop resize)
+        // NOT on height change (keyboard appearance)
+        if (width !== previousWidth.current) {
+            if (width < 768) {
+                setIsSidebarOpen(false);
+            } else {
+                setIsSidebarOpen(true);
+            }
+            previousWidth.current = width;
+        }
+
+        // Scale calculation always runs to fit screen
         if (width < 768) {
-             setIsSidebarOpen(false);
-             // A4 width is approx 794px (210mm * 3.78)
-             // We want padding of ~16px on each side, so available width is width - 32
-             const availableWidth = width - 32;
+             // A4 width is approx 794px. We need to scale it down to fit mobile screen.
+             const availableWidth = width - 32; // 16px padding on each side
              const a4Width = 794; 
              const newScale = Math.min(availableWidth / a4Width, 1);
              setScale(newScale);
         } else {
-             setIsSidebarOpen(true);
              setScale(1);
         }
     };
-    window.addEventListener('resize', handleResize);
-    handleResize(); // Initial check
-    return () => window.removeEventListener('resize', handleResize);
+    
+    // Initial call
+    handleLayout();
+
+    window.addEventListener('resize', handleLayout);
+    return () => window.removeEventListener('resize', handleLayout);
   }, []);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, setter: (val: string | null) => void) => {
+      if (e.target.files && e.target.files[0]) {
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+              if (ev.target?.result) {
+                  setter(ev.target.result as string);
+              }
+          };
+          reader.readAsDataURL(e.target.files[0]);
+      }
+  };
 
   const handleGenerateClick = async () => {
     setLoading(true);
@@ -80,8 +113,13 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
     try {
         const doc = await onGenerate(config);
         if (doc) {
+            // Inject manually uploaded images into the result object context for rendering
+            if (doc.content.cover) {
+                if (schoolLogo) doc.content.cover.schoolLogo = schoolLogo;
+                if (countryEmblem) doc.content.cover.countrySymbol = countryEmblem; // Use image instead of text if available
+            }
             setResult(doc);
-            if (window.innerWidth < 768) setIsSidebarOpen(false); // Auto close on mobile
+            if (window.innerWidth < 768) setIsSidebarOpen(false);
         }
     } catch (e) {
         alert("Erreur de génération");
@@ -91,33 +129,51 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
   };
 
   const downloadPDF = async () => {
-      if (!reportRef.current) return;
+      if (!reportRef.current || !result) return;
       
-      const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
-      const pageWidth = 210;
-      
-      // Helper to capture element and add to PDF
-      const addElementToPdf = async (element: HTMLElement, isFirstPage = false) => {
-          if(!isFirstPage) pdf.addPage();
-
-          const canvas = await html2canvas(element, { scale: 2, useCORS: true });
-          const imgData = canvas.toDataURL('image/png');
-          const imgHeight = (canvas.height * pageWidth) / canvas.width;
-          
-          pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, imgHeight);
-      };
+      const originalTitle = document.title;
+      document.title = `WordPoz-${result.title}`;
 
       try {
-          const sections = reportRef.current.querySelectorAll('.pdf-section');
+          const clone = reportRef.current.cloneNode(true) as HTMLElement;
+          const container = document.createElement('div');
+          container.style.position = 'fixed';
+          container.style.top = '-9999px';
+          container.style.left = '0';
+          container.style.zIndex = '-1';
+          container.style.width = '210mm'; 
+          container.appendChild(clone);
+          document.body.appendChild(container);
+
+          const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+          const pageWidth = 210;
+          const sections = clone.querySelectorAll('.pdf-section');
           
           for (let i = 0; i < sections.length; i++) {
-              await addElementToPdf(sections[i] as HTMLElement, i === 0);
+              if (i > 0) pdf.addPage();
+              const element = sections[i] as HTMLElement;
+              element.style.backgroundColor = 'white';
+
+              const canvas = await html2canvas(element, { 
+                  scale: 2, 
+                  useCORS: true,
+                  windowWidth: 1200
+              });
+              
+              const imgData = canvas.toDataURL('image/png');
+              const imgHeight = (canvas.height * pageWidth) / canvas.width;
+              
+              pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, imgHeight);
           }
 
-          pdf.save(`WordPoz-${result?.title || 'Document'}.pdf`);
+          pdf.save(`WordPoz-${result.title || 'Document'}.pdf`);
+          document.body.removeChild(container);
+          
       } catch (err) {
           console.error("PDF Error", err);
           alert("Erreur lors de la création du PDF.");
+      } finally {
+          document.title = originalTitle;
       }
   };
 
@@ -129,7 +185,7 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2">
                <Menu />
            </button>
-           <span className="font-bold">Clipboard</span>
+           <span className="font-bold truncate max-w-[150px]">{result ? result.title : 'Clipboard'}</span>
            <button onClick={onBack} className="p-2 bg-red-50 text-red-500 rounded-full"><X size={18} /></button>
       </div>
 
@@ -157,7 +213,6 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
                 </div>
             </div>
 
-            {/* Dynamic Forms */}
             {docType === 'expose' && (
                 <>
                     <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Thème" value={topic} onChange={e => setTopic(e.target.value)} />
@@ -192,8 +247,23 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
                         </div>
                     </div>
 
-                    <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Établissement" value={school} onChange={e => setSchool(e.target.value)} />
-                    <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Pays" value={country} onChange={e => setCountry(e.target.value)} />
+                    {/* Inputs with Paperclip for Images */}
+                    <div className="relative">
+                        <input className="w-full p-2 pr-10 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Établissement" value={school} onChange={e => setSchool(e.target.value)} />
+                        <button onClick={() => schoolInputRef.current?.click()} className="absolute right-2 top-2 text-gray-400 hover:text-purple-600 bg-transparent p-1">
+                            {schoolLogo ? <span className="text-green-500 font-bold text-xs">IMG</span> : <Paperclip size={18} />}
+                        </button>
+                        <input type="file" ref={schoolInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, setSchoolLogo)} />
+                    </div>
+
+                    <div className="relative">
+                        <input className="w-full p-2 pr-10 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Pays" value={country} onChange={e => setCountry(e.target.value)} />
+                        <button onClick={() => countryInputRef.current?.click()} className="absolute right-2 top-2 text-gray-400 hover:text-purple-600 bg-transparent p-1">
+                             {countryEmblem ? <span className="text-green-500 font-bold text-xs">IMG</span> : <Paperclip size={18} />}
+                        </button>
+                         <input type="file" ref={countryInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, setCountryEmblem)} />
+                    </div>
+
                     <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Professeur" value={professor} onChange={e => setProfessor(e.target.value)} />
                     <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Date (Ville/Mois/Année)" value={date} onChange={e => setDate(e.target.value)} />
                 </>
@@ -258,18 +328,28 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
                          {/* 1. Cover Page - PDF Section */}
                          {result.content.cover && (
                              <div className="pdf-section w-[210mm] min-h-[297mm] p-12 flex flex-col justify-between bg-white relative">
-                                <div className="flex justify-between items-start mb-12">
-                                    <div className="text-left">
-                                        <div className="font-bold uppercase tracking-widest text-sm">{result.content.cover.countrySymbol || "RÉPUBLIQUE"}</div>
+                                <div className="flex justify-between items-start mb-12 h-32">
+                                    <div className="text-left w-1/3 flex flex-col items-start justify-start h-full">
+                                        {/* Country Symbol / Image */}
+                                        {result.content.cover.countrySymbol?.startsWith('data:image') ? (
+                                            <img src={result.content.cover.countrySymbol} alt="Country" className="max-h-24 object-contain mb-2" />
+                                        ) : (
+                                            <div className="font-bold uppercase tracking-widest text-sm">{result.content.cover.countrySymbol || "RÉPUBLIQUE"}</div>
+                                        )}
                                     </div>
-                                    <div className="text-right">
+                                    <div className="text-right w-1/3 flex flex-col items-end justify-start h-full">
+                                        {/* School Logo / Name */}
+                                        {result.content.cover.schoolLogo ? (
+                                             <img src={result.content.cover.schoolLogo} alt="School" className="max-h-24 object-contain mb-2" />
+                                        ) : null}
                                         <div className="font-bold uppercase tracking-widest text-sm">{result.content.cover.schoolName || "ÉTABLISSEMENT"}</div>
                                     </div>
                                 </div>
                                 
                                 <div className="my-12 text-center">
                                     <h1 className="text-5xl font-serif font-bold mb-4">{result.content.cover.title}</h1>
-                                    {result.content.cover.subtitle && <p className="text-xl italic">{result.content.cover.subtitle}</p>}
+                                    {result.content.cover.subtitle && <p className="text-xl italic mb-4">{result.content.cover.subtitle}</p>}
+                                    {result.content.cover.educationLevel && <p className="text-lg font-bold uppercase text-gray-600 border-t border-b border-gray-300 inline-block py-2 px-8">{result.content.cover.educationLevel}</p>}
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-8 text-left mt-auto">

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { User, ViewState, GeneratedContent } from '../types';
-import { Sparkles, Bell, User as UserIcon, LogOut, Sun, Moon, Search, Plus, List, Trash2, Edit2, Share2, MoreVertical, X, CheckSquare, Loader } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { User, ViewState, GeneratedContent, Notification } from '../types';
+import { Sparkles, Bell, User as UserIcon, LogOut, Sun, Moon, Search, Plus, List, Trash2, Edit2, Share2, MoreVertical, X, CheckSquare, Loader, Inbox } from 'lucide-react';
 import { backend } from '../services/mockBackend';
 
 interface DashboardProps {
@@ -17,29 +17,61 @@ type SelectionMode = 'none' | 'delete' | 'edit' | 'template';
 export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, toggleTheme }: DashboardProps) => {
   const [docs, setDocs] = useState<GeneratedContent[]>([]);
   const [isLoadingDocs, setIsLoadingDocs] = useState(true);
-  const notifications = backend.getNotifications();
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [showNotifPanel, setShowNotifPanel] = useState(false);
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [selectionMode, setSelectionMode] = useState<SelectionMode>('none');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [actionLoading, setActionLoading] = useState(false);
 
-  // Fetch Docs on Mount
+  // Refs for click outside
+  const notifRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Load Docs on Mount
   useEffect(() => {
-      const loadDocs = async () => {
+      const loadData = async () => {
           setIsLoadingDocs(true);
           try {
               const d = await backend.getUserDocuments(user.id);
               setDocs(d);
+              setNotifications(backend.getNotifications());
           } catch(e) {
               console.error(e);
           } finally {
               setIsLoadingDocs(false);
           }
       };
-      loadDocs();
+      loadData();
+      
+      // Periodic check for notifications
+      const interval = setInterval(() => {
+           setNotifications(backend.getNotifications());
+      }, 5000);
+
+      const handleClickOutside = (event: MouseEvent) => {
+        if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+            setShowNotifPanel(false);
+        }
+        if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+            setIsMenuOpen(false);
+        }
+      };
+
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+          clearInterval(interval);
+          document.removeEventListener('mousedown', handleClickOutside);
+      };
   }, [user.id]);
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const handleMarkRead = (id: string) => {
+      backend.markNotificationRead(id);
+      setNotifications(prev => prev.map(n => n.id === id ? {...n, read: true} : n));
+  };
 
   const handleAction = (mode: SelectionMode) => {
       setSelectionMode(mode);
@@ -99,26 +131,60 @@ export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, togg
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white transition-colors relative">
       {/* Top Bar */}
-      <header className="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-10 px-4 py-3 flex justify-between items-center">
+      <header className="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-40 px-4 py-3 flex justify-between items-center">
         <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full wos-gradient flex items-center justify-center text-white font-serif font-bold">W</div>
             <span className="font-bold text-lg hidden md:block">WordPoz</span>
         </div>
         
         <div className="flex items-center gap-3">
-            <div className="px-3 py-1 bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-200 rounded-full text-xs font-semibold uppercase">
-                {user.plan}
+            <div className="px-3 py-1 bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-200 rounded-full text-xs font-semibold uppercase whitespace-nowrap">
+                {user.plan === 'standard' ? 'STD' : user.plan === 'pro_plus' ? 'PRO+' : 'FREE'}
             </div>
-            <div className="text-xs text-gray-500">
-                {user.generationsLimit - user.generationsUsed} left
-            </div>
+            
             <button onClick={toggleTheme} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
                 {theme === 'light' ? <Sun size={20} /> : <Moon size={20} />}
             </button>
-            <div className="relative">
-                <Bell size={20} className="text-gray-600 dark:text-gray-300" />
-                {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>}
+            
+            {/* Notifications */}
+            <div className="relative" ref={notifRef}>
+                <button 
+                    onClick={() => setShowNotifPanel(!showNotifPanel)}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full relative"
+                >
+                    <Bell size={20} className="text-gray-600 dark:text-gray-300" />
+                    {unreadCount > 0 && <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-800"></span>}
+                </button>
+
+                {showNotifPanel && (
+                    <div className="absolute top-full right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border dark:border-gray-700 z-50 overflow-hidden animate-fade-in origin-top-right">
+                        <div className="p-3 border-b dark:border-gray-700 font-bold flex justify-between items-center">
+                            <span>Notifications</span>
+                            <span className="text-xs text-gray-400">{unreadCount} non lues</span>
+                        </div>
+                        <div className="max-h-80 overflow-y-auto">
+                            {notifications.length === 0 ? (
+                                <div className="p-8 text-center text-gray-400 flex flex-col items-center">
+                                    <Inbox size={32} className="mb-2 opacity-50" />
+                                    <p className="text-sm">Rien à signaler</p>
+                                </div>
+                            ) : (
+                                notifications.map(notif => (
+                                    <div 
+                                        key={notif.id} 
+                                        onClick={() => handleMarkRead(notif.id)}
+                                        className={`p-4 border-b dark:border-gray-700 cursor-pointer transition-colors ${notif.read ? 'bg-white dark:bg-gray-800 opacity-70' : 'bg-purple-50 dark:bg-purple-900/20'}`}
+                                    >
+                                        <p className="text-sm text-gray-800 dark:text-gray-200 mb-1">{notif.message}</p>
+                                        <span className="text-xs text-gray-400 block text-right">{new Date(notif.date).toLocaleDateString()}</span>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                )}
             </div>
+
             <button onClick={() => onNavigate('profile')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
                 <UserIcon size={20} />
             </button>
@@ -140,17 +206,18 @@ export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, togg
                     className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 outline-none focus:ring-2 focus:ring-purple-500"
                 />
             </div>
-            <div className="flex gap-2 w-full md:w-auto relative">
+            
+            <div className="flex gap-2 w-full md:w-auto relative justify-end">
                 {/* Menu Action Button */}
-                <div className="relative">
+                <div className="relative" ref={menuRef}>
                     <button 
                         onClick={() => setIsMenuOpen(!isMenuOpen)}
-                        className={`p-2 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg ${selectionMode !== 'none' ? 'ring-2 ring-purple-500' : ''}`}
+                        className={`p-2 h-full aspect-square flex items-center justify-center bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg ${selectionMode !== 'none' ? 'ring-2 ring-purple-500' : ''}`}
                     >
                         <List size={20} />
                     </button>
                     {isMenuOpen && (
-                        <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-xl border dark:border-gray-700 z-50 overflow-hidden animate-fade-in">
+                        <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-xl border dark:border-gray-700 z-50 overflow-hidden animate-fade-in origin-top-right">
                             <button onClick={() => handleAction('delete')} className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 text-red-500">
                                 <Trash2 size={16} /> Supprimer
                             </button>
@@ -166,7 +233,7 @@ export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, togg
 
                 <button 
                     onClick={() => onNavigate('clipboard')}
-                    className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 wos-gradient text-white rounded-lg font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all"
+                    className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 wos-gradient text-white rounded-lg font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all whitespace-nowrap"
                 >
                     <Plus size={20} />
                     Nouveau
@@ -177,9 +244,9 @@ export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, togg
         {/* Selection Mode Banner */}
         {selectionMode !== 'none' && (
             <div className="mb-6 p-4 bg-purple-100 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-xl flex justify-between items-center animate-pulse">
-                <div className="flex items-center gap-2 font-bold text-purple-800 dark:text-purple-200">
+                <div className="flex items-center gap-2 font-bold text-purple-800 dark:text-purple-200 text-sm md:text-base">
                     <CheckSquare size={20} />
-                    {selectionMode === 'delete' ? 'Sélectionner pour Supprimer' : selectionMode === 'edit' ? 'Sélectionner un pour Modifier' : 'Sélectionner pour Template'}
+                    {selectionMode === 'delete' ? 'Sélectionner pour Supprimer' : selectionMode === 'edit' ? 'Choisir pour Modifier' : 'Sélectionner pour Template'}
                 </div>
                 <div className="flex gap-2">
                     <button onClick={() => setSelectionMode('none')} className="p-2 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full"><X size={20} /></button>
@@ -249,7 +316,7 @@ export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, togg
 
         {/* Action Confirm FAB */}
         {selectionMode !== 'none' && selectedIds.length > 0 && (
-            <div className="fixed bottom-24 right-6 z-30 animate-bounce">
+            <div className="fixed bottom-24 right-6 z-40 animate-bounce">
                 <button 
                     onClick={executeAction}
                     disabled={actionLoading}
@@ -262,11 +329,11 @@ export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, togg
         )}
       </main>
 
-      {/* AI Assistant FAB */}
-      <div className="fixed bottom-6 right-6 z-20">
+      {/* AI Assistant FAB - Z-Index augmenté et position ajustée */}
+      <div className="fixed bottom-6 right-6 z-50">
              <button 
                 onClick={() => onNavigate('wos_chat')}
-                className="w-14 h-14 rounded-full bg-black dark:bg-white text-white dark:text-black shadow-2xl flex items-center justify-center hover:scale-110 transition-transform"
+                className="w-14 h-14 rounded-full bg-black dark:bg-white text-white dark:text-black shadow-2xl flex items-center justify-center hover:scale-110 transition-transform ring-2 ring-white dark:ring-gray-800"
              >
                  <Sparkles size={24} />
              </button>

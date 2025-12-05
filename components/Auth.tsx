@@ -30,6 +30,20 @@ export const Auth = ({ onLogin }: { onLogin: (user: User) => void }) => {
     }
   };
 
+  const handleGoogleLogin = async () => {
+      setError('');
+      setLoading(true);
+      try {
+          const user = await backend.loginWithGoogle();
+          // onLogin will be called by the auth listener in App.tsx mostly, 
+          // but calling it here ensures instant feedback if the listener is slow
+          onLogin(user);
+      } catch (err: any) {
+          setError(err.message || "Erreur connexion Google");
+          setLoading(false);
+      }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
       <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-100 dark:border-gray-700">
@@ -39,6 +53,26 @@ export const Auth = ({ onLogin }: { onLogin: (user: User) => void }) => {
             <p className="text-gray-500 text-sm">
                 {backend.isFirebaseActive() ? 'Cloud Secure Auth' : 'Mode Local / Démo'}
             </p>
+        </div>
+
+        <div className="mb-6">
+             <button 
+                type="button"
+                onClick={handleGoogleLogin}
+                disabled={loading}
+                className="w-full py-3 rounded-lg border border-gray-300 dark:border-gray-600 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 transition flex items-center justify-center gap-2 font-medium"
+            >
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5" alt="Google" />
+                Continuer avec Google
+            </button>
+            <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-white dark:bg-gray-800 text-gray-500">Ou par email</span>
+                </div>
+            </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

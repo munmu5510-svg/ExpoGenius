@@ -34,7 +34,7 @@ export const WosAiChat = ({ onBack }: { onBack: () => void }) => {
         // Format history for Gemini API
         const history = messages.map(m => ({
             role: m.role,
-            parts: [{ text: m.text }]
+            parts: [{ text: m.text }] as [{text: string}]
         }));
 
         const responseText = await chatWithWosAI(input, history);

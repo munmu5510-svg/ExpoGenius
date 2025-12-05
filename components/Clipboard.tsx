@@ -360,18 +360,18 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
                          {/* 1. Cover Page */}
                          {result.content.cover && (
                              <div className="pdf-section w-[210mm] min-h-[297mm] p-12 bg-white relative flex flex-col justify-between">
-                                 {/* Border */}
-                                 <div className="absolute inset-6 border-[3px] border-double border-gray-900 pointer-events-none"></div>
+                                 {/* Border - Fade In */}
+                                 <div className="absolute inset-6 border-[3px] border-double border-gray-900 pointer-events-none animate-fade-in" style={{ animationDelay: '0s' }}></div>
                                  
                                  <div className="flex justify-between items-start mt-8 mx-8 h-32 relative z-10">
-                                    <div className="text-left w-1/3">
+                                    <div className="text-left w-1/3 animate-fade-in" style={{ animationDelay: '0.2s' }}>
                                         {result.content.cover.countrySymbol?.startsWith('data:image') ? (
                                             <img src={result.content.cover.countrySymbol} alt="Country" className="max-h-24 object-contain mb-2" />
                                         ) : (
                                             <div className="font-bold uppercase tracking-widest text-sm text-gray-600">{result.content.cover.countrySymbol || "RÉPUBLIQUE"}</div>
                                         )}
                                     </div>
-                                    <div className="text-right w-1/3 flex flex-col items-end">
+                                    <div className="text-right w-1/3 flex flex-col items-end animate-fade-in" style={{ animationDelay: '0.2s' }}>
                                         {result.content.cover.schoolLogo ? (
                                              <img src={result.content.cover.schoolLogo} alt="School" className="max-h-24 object-contain mb-2" />
                                         ) : null}
@@ -381,21 +381,21 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
                                 
                                 <div className="flex-1 flex flex-col justify-center items-center text-center px-16 relative z-10">
                                     {result.content.cover.educationLevel && (
-                                        <div className="mb-8 font-serif italic text-xl text-gray-700 border-b border-gray-400 pb-2 px-6">
+                                        <div className="mb-8 font-serif italic text-xl text-gray-700 border-b border-gray-400 pb-2 px-6 animate-fade-in" style={{ animationDelay: '0.4s' }}>
                                             {result.content.cover.educationLevel}
                                         </div>
                                     )}
-                                    <h1 className="text-5xl font-serif font-black mb-6 leading-tight uppercase tracking-tight text-gray-900">
+                                    <h1 className="text-5xl font-serif font-black mb-6 leading-tight uppercase tracking-tight text-gray-900 animate-fade-in" style={{ animationDelay: '0.6s' }}>
                                         {result.content.cover.title}
                                     </h1>
                                     {result.content.cover.subtitle && (
-                                        <p className="text-2xl font-serif italic text-gray-600 mb-8 max-w-lg">
+                                        <p className="text-2xl font-serif italic text-gray-600 mb-8 max-w-lg animate-fade-in" style={{ animationDelay: '0.8s' }}>
                                             {result.content.cover.subtitle}
                                         </p>
                                     )}
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-8 text-left mb-16 mx-16 relative z-10">
+                                <div className="grid grid-cols-2 gap-8 text-left mb-16 mx-16 relative z-10 animate-fade-in" style={{ animationDelay: '1s' }}>
                                     <div className="pl-4 border-l-4 border-gray-900">
                                         <p className="font-sans font-bold uppercase text-[10px] text-gray-500 tracking-wider mb-1">Présenté par</p>
                                         <p className="text-xl font-serif font-bold text-gray-900">{result.content.cover.studentName}</p>
@@ -406,7 +406,7 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
                                     </div>
                                 </div>
                                 
-                                <div className="text-center pb-8 font-serif italic text-gray-500">
+                                <div className="text-center pb-8 font-serif italic text-gray-500 animate-fade-in" style={{ animationDelay: '1.2s' }}>
                                     {result.content.cover.date || new Date().toLocaleDateString()}
                                 </div>
                              </div>

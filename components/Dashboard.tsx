@@ -329,11 +329,11 @@ export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, togg
         )}
       </main>
 
-      {/* AI Assistant FAB - Z-Index augmenté et position ajustée */}
-      <div className="fixed bottom-6 right-6 z-50">
+      {/* AI Assistant FAB - Z-Index augmenté et position mobile ajustée pour être toujours accessible */}
+      <div className="fixed bottom-20 md:bottom-6 right-6 z-[100]">
              <button 
                 onClick={() => onNavigate('wos_chat')}
-                className="w-14 h-14 rounded-full bg-black dark:bg-white text-white dark:text-black shadow-2xl flex items-center justify-center hover:scale-110 transition-transform ring-2 ring-white dark:ring-gray-800"
+                className="w-14 h-14 rounded-full bg-black dark:bg-white text-white dark:text-black shadow-2xl flex items-center justify-center hover:scale-110 transition-transform ring-4 ring-white dark:ring-gray-800"
              >
                  <Sparkles size={24} />
              </button>

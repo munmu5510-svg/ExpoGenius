@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { User, DocType, GenerationConfig, GeneratedContent } from '../types';
-import { X, ChevronRight, Download, FileText, Share2, Menu, Paperclip } from 'lucide-react';
+import { X, ChevronRight, Download, FileText, Share2, Menu, Paperclip, BookOpen, Printer } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
@@ -50,17 +50,14 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
   useEffect(() => {
     if (initialDoc) {
       setResult(initialDoc);
-      setIsSidebarOpen(false); // Hide sidebar to show doc immediately
-      // If the doc has stored images (mock scenario), we would load them here
+      setIsSidebarOpen(false); 
     }
   }, [initialDoc]);
 
-  // Mobile responsiveness initialization ONLY
+  // Mobile responsiveness initialization
   useEffect(() => {
     const handleLayout = () => {
         const width = window.innerWidth;
-        // Only trigger sidebar change if width changes (orientation change or desktop resize)
-        // NOT on height change (keyboard appearance)
         if (width !== previousWidth.current) {
             if (width < 768) {
                 setIsSidebarOpen(false);
@@ -70,10 +67,8 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
             previousWidth.current = width;
         }
 
-        // Scale calculation always runs to fit screen
         if (width < 768) {
-             // A4 width is approx 794px. We need to scale it down to fit mobile screen.
-             const availableWidth = width - 32; // 16px padding on each side
+             const availableWidth = width - 32; 
              const a4Width = 794; 
              const newScale = Math.min(availableWidth / a4Width, 1);
              setScale(newScale);
@@ -82,9 +77,7 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
         }
     };
     
-    // Initial call
     handleLayout();
-
     window.addEventListener('resize', handleLayout);
     return () => window.removeEventListener('resize', handleLayout);
   }, []);
@@ -113,10 +106,9 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
     try {
         const doc = await onGenerate(config);
         if (doc) {
-            // Inject manually uploaded images into the result object context for rendering
             if (doc.content.cover) {
                 if (schoolLogo) doc.content.cover.schoolLogo = schoolLogo;
-                if (countryEmblem) doc.content.cover.countrySymbol = countryEmblem; // Use image instead of text if available
+                if (countryEmblem) doc.content.cover.countrySymbol = countryEmblem;
             }
             setResult(doc);
             if (window.innerWidth < 768) setIsSidebarOpen(false);
@@ -128,6 +120,28 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
     }
   };
 
+  // Function to generate Dynamic Table of Contents based on structure
+  const getDynamicTOC = (content: GeneratedContent['content']) => {
+    const toc = [];
+    let page = 1; // Start content at page 1
+
+    toc.push({ title: "Introduction", page: page });
+    page++;
+
+    content.sections.forEach(s => {
+        toc.push({ title: s.heading, page: page });
+        page++;
+    });
+
+    toc.push({ title: "Conclusion", page: page });
+    page++;
+
+    if(content.bibliography?.length) {
+        toc.push({ title: "Bibliographie", page: page });
+    }
+    return toc;
+  };
+
   const downloadPDF = async () => {
       if (!reportRef.current || !result) return;
       
@@ -137,6 +151,7 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
       try {
           const clone = reportRef.current.cloneNode(true) as HTMLElement;
           const container = document.createElement('div');
+          // Hide container but keep it rendered for canvas capture
           container.style.position = 'fixed';
           container.style.top = '-9999px';
           container.style.left = '0';
@@ -152,18 +167,20 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
           for (let i = 0; i < sections.length; i++) {
               if (i > 0) pdf.addPage();
               const element = sections[i] as HTMLElement;
+              // Force white background and text colors for PDF render
               element.style.backgroundColor = 'white';
+              element.style.color = 'black';
 
               const canvas = await html2canvas(element, { 
-                  scale: 2, 
+                  scale: 3, // High quality scale
                   useCORS: true,
-                  windowWidth: 1200
+                  windowWidth: 794 // Approx A4 width in px at 96dpi
               });
               
-              const imgData = canvas.toDataURL('image/png');
+              const imgData = canvas.toDataURL('image/jpeg', 0.95);
               const imgHeight = (canvas.height * pageWidth) / canvas.width;
               
-              pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, imgHeight);
+              pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, imgHeight);
           }
 
           pdf.save(`WordPoz-${result.title || 'Document'}.pdf`);
@@ -176,6 +193,21 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
           document.title = originalTitle;
       }
   };
+
+  // Reusable Header/Footer for Content Pages
+  const PageHeader = ({ title, sub }: { title: string, sub?: string }) => (
+      <div className="absolute top-0 left-0 w-full h-24 px-12 pt-8 flex justify-between items-end border-b border-gray-200">
+          <div className="text-xs text-gray-400 uppercase tracking-widest font-sans font-bold">{sub || "Document Scolaire"}</div>
+          <div className="text-sm font-bold text-gray-700 font-serif italic truncate max-w-[300px]">{title}</div>
+      </div>
+  );
+
+  const PageFooter = ({ pageNum }: { pageNum?: number | string }) => (
+      <div className="absolute bottom-0 left-0 w-full h-16 px-12 pb-6 flex justify-between items-center border-t border-gray-100">
+          <div className="text-[10px] text-gray-300 font-sans tracking-wide">Généré par WordPoz AI</div>
+          {pageNum && <div className="text-sm font-serif text-gray-600 font-bold">- {pageNum} -</div>}
+      </div>
+  );
 
   return (
     <div className="flex h-screen bg-gray-100 dark:bg-gray-900 overflow-hidden relative">
@@ -325,102 +357,144 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
                      {/* Document Render Container */}
                      <div ref={reportRef} className="bg-white shadow-2xl text-black">
                          
-                         {/* 1. Cover Page - PDF Section */}
+                         {/* 1. Cover Page */}
                          {result.content.cover && (
-                             <div className="pdf-section w-[210mm] min-h-[297mm] p-12 flex flex-col justify-between bg-white relative">
-                                <div className="flex justify-between items-start mb-12 h-32">
-                                    <div className="text-left w-1/3 flex flex-col items-start justify-start h-full">
-                                        {/* Country Symbol / Image */}
+                             <div className="pdf-section w-[210mm] min-h-[297mm] p-12 bg-white relative flex flex-col justify-between">
+                                 {/* Border */}
+                                 <div className="absolute inset-6 border-[3px] border-double border-gray-900 pointer-events-none"></div>
+                                 
+                                 <div className="flex justify-between items-start mt-8 mx-8 h-32 relative z-10">
+                                    <div className="text-left w-1/3">
                                         {result.content.cover.countrySymbol?.startsWith('data:image') ? (
                                             <img src={result.content.cover.countrySymbol} alt="Country" className="max-h-24 object-contain mb-2" />
                                         ) : (
-                                            <div className="font-bold uppercase tracking-widest text-sm">{result.content.cover.countrySymbol || "RÉPUBLIQUE"}</div>
+                                            <div className="font-bold uppercase tracking-widest text-sm text-gray-600">{result.content.cover.countrySymbol || "RÉPUBLIQUE"}</div>
                                         )}
                                     </div>
-                                    <div className="text-right w-1/3 flex flex-col items-end justify-start h-full">
-                                        {/* School Logo / Name */}
+                                    <div className="text-right w-1/3 flex flex-col items-end">
                                         {result.content.cover.schoolLogo ? (
                                              <img src={result.content.cover.schoolLogo} alt="School" className="max-h-24 object-contain mb-2" />
                                         ) : null}
-                                        <div className="font-bold uppercase tracking-widest text-sm">{result.content.cover.schoolName || "ÉTABLISSEMENT"}</div>
+                                        <div className="font-bold uppercase tracking-widest text-sm text-gray-600">{result.content.cover.schoolName || "ÉTABLISSEMENT"}</div>
                                     </div>
                                 </div>
                                 
-                                <div className="my-12 text-center">
-                                    <h1 className="text-5xl font-serif font-bold mb-4">{result.content.cover.title}</h1>
-                                    {result.content.cover.subtitle && <p className="text-xl italic mb-4">{result.content.cover.subtitle}</p>}
-                                    {result.content.cover.educationLevel && <p className="text-lg font-bold uppercase text-gray-600 border-t border-b border-gray-300 inline-block py-2 px-8">{result.content.cover.educationLevel}</p>}
+                                <div className="flex-1 flex flex-col justify-center items-center text-center px-16 relative z-10">
+                                    {result.content.cover.educationLevel && (
+                                        <div className="mb-8 font-serif italic text-xl text-gray-700 border-b border-gray-400 pb-2 px-6">
+                                            {result.content.cover.educationLevel}
+                                        </div>
+                                    )}
+                                    <h1 className="text-5xl font-serif font-black mb-6 leading-tight uppercase tracking-tight text-gray-900">
+                                        {result.content.cover.title}
+                                    </h1>
+                                    {result.content.cover.subtitle && (
+                                        <p className="text-2xl font-serif italic text-gray-600 mb-8 max-w-lg">
+                                            {result.content.cover.subtitle}
+                                        </p>
+                                    )}
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-8 text-left mt-auto">
-                                    <div>
-                                        <p className="font-bold uppercase text-xs text-gray-500">Présenté par</p>
-                                        <p className="text-lg">{result.content.cover.studentName}</p>
+                                <div className="grid grid-cols-2 gap-8 text-left mb-16 mx-16 relative z-10">
+                                    <div className="pl-4 border-l-4 border-gray-900">
+                                        <p className="font-sans font-bold uppercase text-[10px] text-gray-500 tracking-wider mb-1">Présenté par</p>
+                                        <p className="text-xl font-serif font-bold text-gray-900">{result.content.cover.studentName}</p>
                                     </div>
-                                    <div className="text-right">
-                                        <p className="font-bold uppercase text-xs text-gray-500">Professeur</p>
-                                        <p className="text-lg">{result.content.cover.professorName}</p>
+                                    <div className="text-right pr-4 border-r-4 border-gray-900">
+                                        <p className="font-sans font-bold uppercase text-[10px] text-gray-500 tracking-wider mb-1">Sous la direction de</p>
+                                        <p className="text-xl font-serif font-bold text-gray-900">{result.content.cover.professorName}</p>
                                     </div>
                                 </div>
-                                <div className="mt-8 text-center text-sm text-gray-500">
-                                    {result.content.cover.date}
+                                
+                                <div className="text-center pb-8 font-serif italic text-gray-500">
+                                    {result.content.cover.date || new Date().toLocaleDateString()}
                                 </div>
                              </div>
                          )}
 
-                         {/* 2. TOC - PDF Section (NEW) */}
-                         {result.content.toc && result.content.toc.length > 0 && (
-                             <div className="pdf-section w-[210mm] min-h-[297mm] p-12 bg-white">
-                                 <h2 className="text-3xl font-bold mb-8 text-center uppercase tracking-wider">Sommaire</h2>
-                                 <div className="space-y-4">
-                                     {result.content.toc
-                                         .filter(item => !['couverture', 'sommaire', 'questions-réponses', 'questions réponses', 'discours', 'speech', 'q&a', 'présentation'].some(exclude => item.title.toLowerCase().includes(exclude)))
-                                         .map((item, i) => (
-                                         <div key={i} className="flex items-end">
-                                             <span className="font-medium text-lg bg-white pr-2 z-10">{item.title}</span>
-                                             <div className="flex-1 border-b-2 border-dotted border-gray-400 mb-1 mx-2"></div>
-                                             <span className="font-bold text-lg bg-white pl-2 z-10">{item.page}</span>
-                                         </div>
-                                     ))}
-                                 </div>
+                         {/* 2. Dynamic Table of Contents */}
+                         <div className="pdf-section w-[210mm] min-h-[297mm] p-12 bg-white relative">
+                             <PageHeader title={result.title} sub="Sommaire" />
+                             <div className="mt-20 px-8">
+                                <h2 className="text-3xl font-serif font-bold mb-12 text-center uppercase tracking-widest border-b-2 border-gray-900 pb-4">Sommaire</h2>
+                                <div className="space-y-4">
+                                    {getDynamicTOC(result.content).map((item, i) => (
+                                        <div key={i} className="flex items-baseline w-full">
+                                            <span className="font-serif text-lg font-bold text-gray-800 bg-white pr-2 z-10">{item.title}</span>
+                                            <div className="flex-1 border-b-2 border-dotted border-gray-400 mx-2 mb-1"></div>
+                                            <span className="font-serif text-lg font-bold text-gray-900 bg-white pl-2 z-10">{item.page}</span>
+                                        </div>
+                                    ))}
+                                </div>
                              </div>
-                         )}
-
-                         {/* 3. Introduction - PDF Section */}
-                         <div className="pdf-section w-[210mm] min-h-[297mm] p-12 bg-white">
-                             <h2 className="text-2xl font-bold mb-6 border-b-2 border-black pb-2">Introduction</h2>
-                             <p className="whitespace-pre-wrap text-justify leading-relaxed text-lg">{result.content.introduction}</p>
+                             <PageFooter />
                          </div>
 
-                         {/* 4. Sections - PDF Sections */}
+                         {/* 3. Introduction */}
+                         <div className="pdf-section w-[210mm] min-h-[297mm] p-12 bg-white relative">
+                             <PageHeader title={result.title} sub="Introduction" />
+                             <div className="mt-20 px-8">
+                                <h2 className="text-2xl font-sans font-bold mb-6 text-gray-900 uppercase tracking-wide">Introduction</h2>
+                                <p className="whitespace-pre-wrap text-justify leading-loose text-lg font-serif text-gray-800">
+                                    {result.content.introduction}
+                                </p>
+                             </div>
+                             <PageFooter pageNum={1} />
+                         </div>
+
+                         {/* 4. Sections */}
                          {result.content.sections.map((sec, i) => (
-                             <div key={i} className="pdf-section w-[210mm] min-h-[297mm] p-12 bg-white">
-                                 <h3 className="text-xl font-bold mb-4 flex items-center gap-2 border-l-4 border-purple-600 pl-4">
-                                     {sec.heading}
-                                 </h3>
-                                 <p className="whitespace-pre-wrap text-justify leading-relaxed mb-6">{sec.content}</p>
-                                 {sec.visualSuggestion && (
-                                     <div className="p-6 bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl text-center text-sm text-gray-500 italic my-6 flex flex-col items-center justify-center">
-                                         <span className="font-bold mb-1">Espace pour Illustration</span>
-                                         Suggestion: {sec.visualSuggestion}
+                             <div key={i} className="pdf-section w-[210mm] min-h-[297mm] p-12 bg-white relative">
+                                 <PageHeader title={result.title} sub={`Partie ${i + 1}`} />
+                                 <div className="mt-20 px-8">
+                                     <div className="flex items-baseline gap-4 mb-8 border-b border-gray-200 pb-4">
+                                         <span className="text-5xl font-sans font-black text-gray-200">{i + 1}</span>
+                                         <h3 className="text-2xl font-serif font-bold text-gray-900 uppercase">{sec.heading}</h3>
                                      </div>
-                                 )}
+                                     
+                                     <p className="whitespace-pre-wrap text-justify leading-loose text-lg font-serif text-gray-800 mb-8">
+                                         {sec.content}
+                                     </p>
+                                     
+                                     {sec.visualSuggestion && (
+                                         <div className="mx-auto w-3/4 p-6 bg-gray-50 border border-gray-200 rounded text-center my-8 break-inside-avoid">
+                                             <div className="flex justify-center mb-2 text-gray-400"><BookOpen size={24} /></div>
+                                             <p className="text-xs font-bold uppercase text-gray-400 mb-1">Suggestion d'illustration</p>
+                                             <p className="text-sm italic text-gray-600">"{sec.visualSuggestion}"</p>
+                                         </div>
+                                     )}
+                                 </div>
+                                 <PageFooter pageNum={i + 2} />
                              </div>
                          ))}
 
-                         {/* 5. Conclusion - PDF Section */}
-                         <div className="pdf-section w-[210mm] min-h-[297mm] p-12 bg-white">
-                             <h2 className="text-2xl font-bold mb-6 border-b-2 border-black pb-2">Conclusion</h2>
-                             <p className="whitespace-pre-wrap text-justify leading-relaxed text-lg">{result.content.conclusion}</p>
+                         {/* 5. Conclusion */}
+                         <div className="pdf-section w-[210mm] min-h-[297mm] p-12 bg-white relative">
+                             <PageHeader title={result.title} sub="Conclusion" />
+                             <div className="mt-20 px-8">
+                                 <h2 className="text-2xl font-sans font-bold mb-6 text-gray-900 uppercase tracking-wide">Conclusion</h2>
+                                 <p className="whitespace-pre-wrap text-justify leading-loose text-lg font-serif text-gray-800">
+                                     {result.content.conclusion}
+                                 </p>
+                             </div>
+                             <PageFooter pageNum={result.content.sections.length + 2} />
                          </div>
                          
-                         {/* 6. Bibliography - PDF Section */}
+                         {/* 6. Bibliography */}
                          {result.content.bibliography && (
-                             <div className="pdf-section w-[210mm] min-h-[297mm] p-12 bg-white">
-                                 <h2 className="text-2xl font-bold mb-6 border-b-2 border-black pb-2">Bibliographie</h2>
-                                 <ul className="list-disc pl-5 space-y-3">
-                                     {result.content.bibliography.map((b, i) => <li key={i} className="leading-relaxed">{b}</li>)}
-                                 </ul>
+                             <div className="pdf-section w-[210mm] min-h-[297mm] p-12 bg-white relative">
+                                 <PageHeader title={result.title} sub="Références" />
+                                 <div className="mt-20 px-8">
+                                     <h2 className="text-2xl font-sans font-bold mb-8 text-gray-900 uppercase tracking-wide border-b-2 border-black inline-block pb-1">Bibliographie</h2>
+                                     <ul className="list-none space-y-4 pl-0">
+                                         {result.content.bibliography.map((b, i) => (
+                                             <li key={i} className="text-lg font-serif text-gray-700 pl-4 border-l-4 border-gray-200 py-1">
+                                                 {b}
+                                             </li>
+                                         ))}
+                                     </ul>
+                                 </div>
+                                 <PageFooter />
                              </div>
                          )}
                      </div>

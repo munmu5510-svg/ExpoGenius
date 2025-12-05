@@ -52,15 +52,13 @@ export const Landing = ({ onGetStarted }: { onGetStarted: () => void }) => {
                  <div className="w-12 h-12 rounded-lg bg-green-100 text-green-600 flex items-center justify-center mb-4">
                     <Phone size={24} />
                 </div>
-                <h3 className="text-xl font-bold mb-2">Support WhatsApp</h3>
-                <p className="text-gray-500">Une question ? Rejoignez notre communauté.</p>
+                <h3 className="text-xl font-bold mb-2">Service Client</h3>
+                <p className="text-gray-500">Une question ou un transfert de crédit ?</p>
                 <a 
-                    href="https://chat.whatsapp.com/k1T86s9DT4I7Yfg55xs6rc?mode=wwt" 
-                    target="_blank" 
-                    rel="noreferrer"
+                    href="tel:+240555320354"
                     className="mt-2 inline-block text-green-600 font-bold hover:underline"
                 >
-                    Rejoindre le groupe
+                    +240 555 320 354
                 </a>
             </div>
         </div>
@@ -72,7 +70,7 @@ export const Landing = ({ onGetStarted }: { onGetStarted: () => void }) => {
              <a href="https://facebook.com/WordPoz" target="_blank" className="p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700">
                  <Facebook size={20} />
              </a>
-             <a href="https://chat.whatsapp.com/k1T86s9DT4I7Yfg55xs6rc?mode=wwt" target="_blank" className="p-2 bg-green-500 text-white rounded-full hover:bg-green-600">
+             <a href="tel:+240555320354" className="p-2 bg-green-500 text-white rounded-full hover:bg-green-600">
                  <Phone size={20} />
              </a>
          </div>

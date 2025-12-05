@@ -93,11 +93,18 @@ export const ReportView: React.FC<ReportViewProps> = ({ content, settings }) => 
         if (navigator.share) {
             await navigator.share(shareData);
         } else {
-            await navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}`);
-            alert("Résumé copié dans le presse-papier (Partage non supporté sur ce navigateur)");
+            throw new Error("Partage natif non supporté");
         }
     } catch (err) {
-        console.error("Error sharing", err);
+        // Fallback
+        try {
+             const textToCopy = `${shareData.title}\n${shareData.text}\nLien: ${shareData.url}`;
+             await navigator.clipboard.writeText(textToCopy);
+             alert("Lien copié dans le presse-papier !");
+        } catch (copyErr) {
+             console.error("Copy failed", copyErr);
+             alert("Impossible de partager.");
+        }
     }
   };
 

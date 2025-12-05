@@ -37,17 +37,24 @@ export const UserProfile = ({ user, onBack, onNavigate, onUpdateUser, onLogout }
       const shareData = {
           title: selectedShareDoc.title,
           text: `Découvrez mon document "${selectedShareDoc.title}" généré avec WordPoz.\n\n${selectedShareDoc.content.introduction?.substring(0, 100)}...`,
-          url: window.location.href // Ideally a direct link to the doc if backend existed
+          url: window.location.href 
       };
 
       try {
           if (navigator.share) {
               await navigator.share(shareData);
           } else {
-              alert("Le partage n'est pas supporté sur cet appareil. Copiez ce texte : " + shareData.text);
+              throw new Error("Partage natif non supporté");
           }
       } catch (err) {
-          console.error("Error sharing", err);
+          // Fallback pour mobile/desktop sans support natif
+          try {
+              const textToCopy = `${shareData.title}\n${shareData.text}\nLien: ${shareData.url}`;
+              await navigator.clipboard.writeText(textToCopy);
+              alert("Lien et description copiés dans le presse-papier !");
+          } catch (copyErr) {
+              alert("Impossible de partager ou de copier. Veuillez copier manuellement.");
+          }
       }
   };
 
@@ -58,8 +65,9 @@ export const UserProfile = ({ user, onBack, onNavigate, onUpdateUser, onLogout }
   ];
 
   const handleSubscriptionClick = (planName: string) => {
-      const paymentNumber = "655555555"; // Exemple placeholder
-      const message = `Pour activer le plan ${planName}, veuillez effectuer un transfert au numéro : ${paymentNumber}.\n\nUne fois effectué, envoyez la capture d'écran au support.\n\nVoulez-vous ouvrir l'application téléphone ?`;
+      const paymentNumber = "+240555320354"; 
+      const displayNumber = "+240 555 320 354";
+      const message = `Pour activer le plan ${planName}, veuillez effectuer un transfert de crédit au numéro : ${displayNumber}.\n\nUne fois effectué, le service client activera votre compte.\n\nVoulez-vous ouvrir l'application téléphone ?`;
       
       if (confirm(message)) {
           window.location.href = `tel:${paymentNumber}`;

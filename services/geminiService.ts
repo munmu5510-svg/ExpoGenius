@@ -1,7 +1,9 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { GenerationConfig, GeneratedContent } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Check if API KEY is present to avoid cryptic errors
+const apiKey = process.env.API_KEY;
+const ai = new GoogleGenAI({ apiKey: apiKey || 'dummy-key-to-prevent-crash-init' });
 
 // --- CONNAISSANCES DE WOS AI ---
 const WOS_SYSTEM_INSTRUCTION = `
@@ -40,7 +42,22 @@ RÈGLES DE COMPORTEMENT :
 - Si on te demande qui t'a créé, réponds simplement "L'équipe WordPoz".
 `;
 
+const handleGeminiError = (error: any) => {
+    console.error("Gemini Error:", error);
+    const errStr = JSON.stringify(error) || error.message || "";
+    
+    if (errStr.includes("Rpc failed") || errStr.includes("xhr error") || errStr.includes("fetch failed") || errStr.includes("NetworkError")) {
+        throw new Error("Erreur de connexion (RPC). Le serveur IA est injoignable. Vérifiez votre connexion Internet, ou essayez de désactiver votre VPN/Adblock.");
+    }
+    if (errStr.includes("API key not valid") || !process.env.API_KEY) {
+        throw new Error("Clé API Gemini invalide ou manquante. Contactez l'administrateur.");
+    }
+    throw error;
+};
+
 export const chatWithWosAI = async (message: string, history: {role: 'user' | 'model', parts: [{text: string}]}[]): Promise<string> => {
+  if (!apiKey) return "Erreur : Clé API manquante.";
+  
   try {
     const chat = ai.chats.create({
       model: "gemini-2.5-flash",
@@ -53,16 +70,17 @@ export const chatWithWosAI = async (message: string, history: {role: 'user' | 'm
     const response = await chat.sendMessage({ message: message });
     return response.text || "Désolé, je n'ai pas pu générer de réponse.";
   } catch (error) {
-    console.error("Chat Error", error);
-    return "Une erreur est survenue lors de la communication avec WOS AI. Vérifiez votre connexion.";
+    handleGeminiError(error);
+    return "Une erreur est survenue lors de la communication.";
   }
 };
 
 export const generateDocument = async (config: GenerationConfig, userName: string): Promise<GeneratedContent> => {
-  const modelId = "gemini-2.5-flash"; // Using flash for speed and cost efficiency as per request
+  if (!apiKey) throw new Error("Clé API Gemini manquante.");
+
+  const modelId = "gemini-2.5-flash"; 
 
   let prompt = "";
-  // Instruction spécifique pour la génération de documents (différente du Chatbot)
   let docSystemInstruction = "You are WordPoz AI, a professional academic writing assistant. Your goal is to produce high-quality, structured, and budget-optimized school documents.";
 
   if (config.type === 'expose') {
@@ -105,7 +123,6 @@ export const generateDocument = async (config: GenerationConfig, userName: strin
     `;
   }
 
-  // Common Schema for all types to simplify parsing
   const responseSchema = {
     type: Type.OBJECT,
     properties: {
@@ -174,12 +191,11 @@ export const generateDocument = async (config: GenerationConfig, userName: strin
 
     if (response.text) {
       const parsed = JSON.parse(response.text);
-      // Inject user data into cover if it exists
       if (parsed.content.cover) {
           parsed.content.cover.studentName = userName;
           parsed.content.cover.professorName = config.professor;
           parsed.content.cover.date = config.date;
-          parsed.content.cover.educationLevel = config.level; // Inject Level
+          parsed.content.cover.educationLevel = config.level; 
           if(!parsed.content.cover.schoolName) parsed.content.cover.schoolName = config.school;
       }
       return {
@@ -189,10 +205,10 @@ export const generateDocument = async (config: GenerationConfig, userName: strin
           createdAt: Date.now()
       };
     } else {
-      throw new Error("Empty response from AI");
+      throw new Error("Réponse IA vide.");
     }
   } catch (error) {
-    console.error("Gemini Error:", error);
+    handleGeminiError(error);
     throw error;
   }
 };

@@ -1,8 +1,5 @@
 import { User, Notification, PromoCode, AdminStats, GeneratedContent } from "../types";
 
-// NOTE: Firebase imports removed due to environment issues. 
-// This service will run in pure Local Mock mode.
-
 const KEYS = {
   USERS: 'wos_users',
   CURRENT_USER: 'wos_current_user',
@@ -41,7 +38,7 @@ export const backend = {
   },
 
   register: async (name: string, email: string, password?: string): Promise<User> => {
-    // Local Implementation
+    // Fallback Local
     const users = JSON.parse(localStorage.getItem(KEYS.USERS) || '[]');
     if (users.find((u: User) => u.email === email)) throw new Error("Email déjà utilisé (Local)");
     
@@ -63,7 +60,7 @@ export const backend = {
   },
 
   login: async (email: string, password?: string): Promise<User> => {
-    // Local Implementation
+    // Fallback Local
     const users = JSON.parse(localStorage.getItem(KEYS.USERS) || '[]');
     const user = users.find((u: User) => u.email === email);
     if (!user) throw new Error("Utilisateur introuvable (Local)");
@@ -74,18 +71,28 @@ export const backend = {
   },
 
   loginWithGoogle: async (): Promise<User> => {
-      // Simulation for Google Login in Local Mode
-      await new Promise(r => setTimeout(r, 1000));
-      const googleUser: User = {
-          id: 'google-' + Date.now(),
-          name: "Google User Demo",
-          email: "demo@google.com",
-          plan: 'freemium',
-          generationsUsed: 0,
-          generationsLimit: 6,
-          isAdmin: false
-      };
+      // Simulation du Login Google Stable
+      console.warn("⚠️ Mode Local : Simulation du Login Google");
+      await new Promise(r => setTimeout(r, 800)); // Latence artificielle courte
       
+      // On cherche si l'utilisateur démo existe déjà pour ne pas perdre ses documents
+      const users = JSON.parse(localStorage.getItem(KEYS.USERS) || '[]');
+      let googleUser = users.find((u: User) => u.email === "demo@google.com");
+
+      if (!googleUser) {
+          googleUser = {
+            id: 'google-demo-user-persistent', // ID fixe pour retrouver les docs
+            name: "Google User Demo",
+            email: "demo@google.com",
+            plan: 'freemium',
+            generationsUsed: 0,
+            generationsLimit: 6,
+            isAdmin: false
+          };
+          users.push(googleUser);
+          localStorage.setItem(KEYS.USERS, JSON.stringify(users));
+      }
+
       localStorage.setItem(KEYS.CURRENT_USER, JSON.stringify(googleUser));
       return googleUser;
   },
@@ -113,7 +120,7 @@ export const backend = {
 
   saveDocument: async (docContent: GeneratedContent, userId: string) => {
       const newDoc = { ...docContent, userId, id: Date.now().toString() };
-
+      
       // Local Fallback / Cache
       const docs = JSON.parse(localStorage.getItem(KEYS.DOCS) || '[]');
       docs.push(newDoc);
@@ -174,7 +181,7 @@ export const backend = {
   },
   
   saveFirebaseSDK: (sdk: string) => {
-      console.warn("Firebase SDK not supported in this environment.");
+      console.warn("Deprecated: SDK saving is disabled in favor of env config.");
   },
 
   sendNotification: (message: string) => {

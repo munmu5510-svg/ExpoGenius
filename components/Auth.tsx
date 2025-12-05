@@ -62,8 +62,14 @@ export const Auth = ({ onLogin }: { onLogin: (user: User) => void }) => {
                 disabled={loading}
                 className="w-full py-3 rounded-lg border border-gray-300 dark:border-gray-600 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 transition flex items-center justify-center gap-2 font-medium"
             >
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5" alt="Google" />
-                Continuer avec Google
+                {loading ? (
+                    <span className="animate-spin w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full"></span>
+                ) : (
+                    <>
+                        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5" alt="Google" />
+                        Mode Démo : Google (Simulé)
+                    </>
+                )}
             </button>
             <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">

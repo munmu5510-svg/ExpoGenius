@@ -214,15 +214,70 @@ export const ReportView: React.FC<ReportViewProps> = ({ content, settings }) => 
         className="bg-white shadow-2xl p-12 min-h-[29.7cm] text-gray-800 print:shadow-none print:p-0 print:w-full"
         style={{ width: '100%' }}
       >
-        {/* Header */}
-        <div className="border-b-2 border-gray-800 pb-6 mb-8 text-center">
-            <h1 className="text-4xl font-extrabold uppercase tracking-tight mb-2">{content.title}</h1>
-            <div className="flex justify-center gap-4 text-gray-500 italic text-sm">
-                <span>Sujet : {settings.topic}</span>
-                <span>•</span>
-                <span>Niveau : {settings.educationLevel || "Non spécifié"}</span>
+        {/* COVER PAGE with Fade In Effects */}
+        {content.cover ? (
+            <div className="pdf-section w-full min-h-[25cm] flex flex-col justify-between mb-12 pb-12 border-b border-gray-100 relative print:border-none print:mb-0 print:pb-0" style={{ pageBreakAfter: 'always' }}>
+                 {/* Border - Fade In */}
+                 <div className="absolute inset-0 border-[3px] border-double border-gray-900 pointer-events-none opacity-0 animate-fade-in" style={{ animationDelay: '0.1s', animationFillMode: 'forwards' }}></div>
+                 
+                 <div className="flex justify-between items-start pt-12 px-12 relative z-10">
+                    <div className="text-left w-1/3 opacity-0 animate-fade-in" style={{ animationDelay: '0.3s', animationFillMode: 'forwards' }}>
+                        {content.cover.countrySymbol?.startsWith('data:image') ? (
+                            <img src={content.cover.countrySymbol} alt="Country" className="max-h-24 object-contain mb-2" />
+                        ) : (
+                            <div className="font-bold uppercase tracking-widest text-sm text-gray-600">{content.cover.countrySymbol || "RÉPUBLIQUE"}</div>
+                        )}
+                    </div>
+                    <div className="text-right w-1/3 flex flex-col items-end opacity-0 animate-fade-in" style={{ animationDelay: '0.3s', animationFillMode: 'forwards' }}>
+                        {content.cover.schoolLogo ? (
+                             <img src={content.cover.schoolLogo} alt="School" className="max-h-24 object-contain mb-2" />
+                        ) : null}
+                        <div className="font-bold uppercase tracking-widest text-sm text-gray-600">{content.cover.schoolName || "ÉTABLISSEMENT"}</div>
+                    </div>
+                </div>
+                
+                <div className="flex-1 flex flex-col justify-center items-center text-center px-16 relative z-10 my-16">
+                    {content.cover.educationLevel && (
+                        <div className="mb-8 font-serif italic text-xl text-gray-700 border-b border-gray-400 pb-2 px-6 opacity-0 animate-fade-in" style={{ animationDelay: '0.5s', animationFillMode: 'forwards' }}>
+                            {content.cover.educationLevel}
+                        </div>
+                    )}
+                    <h1 className="text-5xl font-serif font-black mb-6 leading-tight uppercase tracking-tight text-gray-900 opacity-0 animate-fade-in" style={{ animationDelay: '0.7s', animationFillMode: 'forwards' }}>
+                        {content.cover.title}
+                    </h1>
+                    {content.cover.subtitle && (
+                        <p className="text-2xl font-serif italic text-gray-600 mb-8 max-w-lg opacity-0 animate-fade-in" style={{ animationDelay: '0.9s', animationFillMode: 'forwards' }}>
+                            {content.cover.subtitle}
+                        </p>
+                    )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-8 text-left mb-8 mx-12 relative z-10 opacity-0 animate-fade-in" style={{ animationDelay: '1.1s', animationFillMode: 'forwards' }}>
+                    <div className="pl-4 border-l-4 border-gray-900">
+                        <p className="font-sans font-bold uppercase text-[10px] text-gray-500 tracking-wider mb-1">Présenté par</p>
+                        <p className="text-xl font-serif font-bold text-gray-900">{content.cover.studentName}</p>
+                    </div>
+                    <div className="text-right pr-4 border-r-4 border-gray-900">
+                        <p className="font-sans font-bold uppercase text-[10px] text-gray-500 tracking-wider mb-1">Sous la direction de</p>
+                        <p className="text-xl font-serif font-bold text-gray-900">{content.cover.professorName}</p>
+                    </div>
+                </div>
+                
+                <div className="text-center font-serif italic text-gray-500 opacity-0 animate-fade-in" style={{ animationDelay: '1.3s', animationFillMode: 'forwards' }}>
+                    {content.cover.date}
+                </div>
             </div>
-        </div>
+        ) : (
+            /* Fallback Header */
+            <div className="border-b-2 border-gray-800 pb-6 mb-8 text-center animate-fade-in">
+                <h1 className="text-4xl font-extrabold uppercase tracking-tight mb-2">{content.title}</h1>
+                <div className="flex justify-center gap-4 text-gray-500 italic text-sm">
+                    <span>Sujet : {settings.topic}</span>
+                    <span>•</span>
+                    <span>Niveau : {settings.educationLevel || "Non spécifié"}</span>
+                </div>
+            </div>
+        )}
 
         {/* Introduction */}
         <div className="mb-8">

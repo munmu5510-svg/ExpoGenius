@@ -16,7 +16,7 @@ import { WosAiChat } from './components/WosAiChat';
 export default function App() {
   const [view, setView] = useState<ViewState>('splash');
   const [user, setUser] = useState<User | null>(null);
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [lang, setLang] = useState('en');
   const [selectedDoc, setSelectedDoc] = useState<GeneratedContent | null>(null);
 
@@ -26,11 +26,8 @@ export default function App() {
     const browserLang = navigator.language.startsWith('fr') ? 'fr' : 'en';
     setLang(browserLang);
 
-    // Theme
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        setTheme('dark');
-        document.body.classList.add('dark');
-    }
+    // Theme - Force Dark by default
+    document.body.classList.add('dark');
 
     // Initialize Auth Listener
     // This handles both Firebase Auth changes AND initial local storage checks

@@ -15,12 +15,12 @@ TON RÔLE :
 3. Expliquer les fonctionnalités, les problèmes courants et les formules d'abonnement.
 
 À PROPOS DE WORDPOZ :
-WordPoz est une application innovante qui génère des documents scolaires (Exposés, Dissertations, Argumentations) optimisés selon le budget d'impression de l'utilisateur.
+WordPoz est une application innovante qui génère des documents scolaires (Exposés, Dissertations, Argumentations, Thèses) optimisés selon le budget d'impression de l'utilisateur.
 
 GUIDE D'UTILISATION (Ce que tu dois savoir) :
 - **Dashboard (Accueil)** : C'est là que l'utilisateur voit ses documents récents. Il peut cliquer sur le menu (liste) à côté du bouton "+" pour Supprimer, Renommer ou utiliser un document comme modèle.
 - **Création (Clipboard)** : En cliquant sur "Nouveau" ou le bouton "+", l'utilisateur accède au formulaire.
-  - Il peut choisir : Exposé, Dissertation ou Argumentation.
+  - Il peut choisir : Exposé, Thèse, Dissertation ou Argumentation.
   - Il peut importer les logos de son établissement et de son pays via l'icône trombone (Paperclip) pour une page de garde professionnelle.
   - **Spécificité WordPoz** : L'utilisateur entre son BUDGET total et le prix d'impression (N&B et Couleur). L'IA optimise le document pour ne pas dépasser ce coût.
 - **Export** : Une fois généré, le document peut être téléchargé en PDF (format A4 standard) ou partagé via texte.
@@ -103,6 +103,31 @@ export const generateDocument = async (config: GenerationConfig, userName: strin
       8. (Bonus - Pro+) Un petit discours de présentation (speech) (même si non affiché en mode gratuit, génère-le).
       9. Estimation du nombre de pages (chiffre entier).
       10. Recommandation IA courte pour l'élève (ex: "Attention, ce sujet est vaste...").
+    `;
+  } else if (config.type === 'these') {
+    prompt = `
+      Génère un plan détaillé et une synthèse complète pour une THÈSE ACADÉMIQUE.
+      Sujet : "${config.topic}".
+      Domaine d'étude : ${config.level || "Recherche"}.
+      Problématique/Hypothèse : "${config.instructions || "À définir par l'IA selon le sujet"}".
+      
+      Contexte impression :
+      - Budget impression : ${config.budget} ${config.currency}.
+      
+      ATTENTION : Une thèse est un document très formel. Adopte un ton doctoral, rigoureux et scientifique.
+      Structure requise (JSON) :
+      1. Infos de couverture (Titre académique, "Thèse de Doctorat/Master", etc.).
+      2. Sommaire.
+      3. Introduction (doit inclure : Contexte, Problématique, Hypothèses, Méthodologie annoncée).
+      4. Corps de la thèse (Sections) :
+         - Section 1 : État de l'art (Revue de littérature).
+         - Section 2 : Méthodologie de recherche.
+         - Section 3 : Résultats et Analyse.
+         - Section 4 : Discussion.
+      5. Conclusion (Synthèse, Limites, Ouvertures).
+      6. Bibliographie (Style APA ou approprié).
+      
+      Important : Chaque section doit être très développée pour montrer la substance du travail, mais rester synthétique pour tenir dans la génération.
     `;
   } else if (config.type === 'dissertation') {
     prompt = `

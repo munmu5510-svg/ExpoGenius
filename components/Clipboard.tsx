@@ -207,7 +207,7 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
   // Reusable Header/Footer for Content Pages
   const PageHeader = ({ title, sub }: { title: string, sub?: string }) => (
       <div className="absolute top-0 left-0 w-full h-24 px-12 pt-8 flex justify-between items-end border-b border-gray-200">
-          <div className="text-xs text-gray-400 uppercase tracking-widest font-sans font-bold">{sub || "Document Scolaire"}</div>
+          <div className="text-xs text-gray-400 uppercase tracking-widest font-sans font-bold">{sub || "Document Académique"}</div>
           <div className="text-sm font-bold text-gray-700 font-serif italic truncate max-w-[300px]">{title}</div>
       </div>
   );
@@ -251,20 +251,21 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
             <div className="p-4 space-y-6 overflow-y-auto pb-20">
                 <div>
                     <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">Type de production</label>
-                    <div className="flex gap-2">
-                        <button onClick={() => setDocType('expose')} className={`px-3 py-1 rounded-md text-sm ${docType === 'expose' ? 'bg-purple-600 text-white' : 'bg-gray-100 dark:bg-gray-700'}`}>Exposé</button>
-                        <button onClick={() => setDocType('dissertation')} className={`px-3 py-1 rounded-md text-sm ${docType === 'dissertation' ? 'bg-purple-600 text-white' : 'bg-gray-100 dark:bg-gray-700'}`}>Dissert.</button>
-                        <button onClick={() => setDocType('argumentation')} className={`px-3 py-1 rounded-md text-sm ${docType === 'argumentation' ? 'bg-purple-600 text-white' : 'bg-gray-100 dark:bg-gray-700'}`}>Arg.</button>
+                    <div className="grid grid-cols-2 gap-2">
+                        <button onClick={() => setDocType('expose')} className={`px-3 py-2 rounded-md text-xs font-bold ${docType === 'expose' ? 'bg-purple-600 text-white' : 'bg-gray-100 dark:bg-gray-700'}`}>Exposé</button>
+                        <button onClick={() => setDocType('these')} className={`px-3 py-2 rounded-md text-xs font-bold ${docType === 'these' ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-700'}`}>Thèse</button>
+                        <button onClick={() => setDocType('dissertation')} className={`px-3 py-2 rounded-md text-xs font-bold ${docType === 'dissertation' ? 'bg-purple-600 text-white' : 'bg-gray-100 dark:bg-gray-700'}`}>Dissertation</button>
+                        <button onClick={() => setDocType('argumentation')} className={`px-3 py-2 rounded-md text-xs font-bold ${docType === 'argumentation' ? 'bg-purple-600 text-white' : 'bg-gray-100 dark:bg-gray-700'}`}>Argumentation</button>
                     </div>
                 </div>
 
-                {docType === 'expose' && (
+                {(docType === 'expose' || docType === 'these') && (
                     <>
-                        <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Thème" value={topic} onChange={e => setTopic(e.target.value)} />
-                        <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Niveau d'étude" value={level} onChange={e => setLevel(e.target.value)} />
+                        <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder={docType === 'these' ? "Sujet de Thèse" : "Thème de l'exposé"} value={topic} onChange={e => setTopic(e.target.value)} />
+                        <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder={docType === 'these' ? "Domaine (ex: Droit, Médecine...)" : "Niveau d'étude"} value={level} onChange={e => setLevel(e.target.value)} />
                         
                         <div className="space-y-2">
-                            <label className="text-xs font-bold uppercase text-gray-400">Devise & Budget</label>
+                            <label className="text-xs font-bold uppercase text-gray-400">Devise & Budget Impression</label>
                             <select 
                                 value={currency} 
                                 onChange={e => setCurrency(e.target.value)}
@@ -294,7 +295,7 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
 
                         {/* Inputs with Paperclip for Images */}
                         <div className="relative">
-                            <input className="w-full p-2 pr-10 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Établissement" value={school} onChange={e => setSchool(e.target.value)} />
+                            <input className="w-full p-2 pr-10 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder={docType === 'these' ? "Université / Institution" : "Établissement"} value={school} onChange={e => setSchool(e.target.value)} />
                             <button onClick={() => schoolInputRef.current?.click()} className="absolute right-2 top-2 text-gray-400 hover:text-purple-600 bg-transparent p-1">
                                 {schoolLogo ? <span className="text-green-500 font-bold text-xs">IMG</span> : <Paperclip size={18} />}
                             </button>
@@ -309,8 +310,12 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
                             <input type="file" ref={countryInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, setCountryEmblem)} />
                         </div>
 
-                        <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Professeur" value={professor} onChange={e => setProfessor(e.target.value)} />
+                        <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder={docType === 'these' ? "Directeur de thèse" : "Professeur"} value={professor} onChange={e => setProfessor(e.target.value)} />
                         <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Date (Ville/Mois/Année)" value={date} onChange={e => setDate(e.target.value)} />
+                        
+                        {docType === 'these' && (
+                             <textarea className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Hypothèse ou Problématique spécifique..." value={instructions} onChange={e => setInstructions(e.target.value)} />
+                        )}
                     </>
                 )}
 

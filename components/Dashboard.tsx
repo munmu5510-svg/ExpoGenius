@@ -298,6 +298,7 @@ export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, togg
                                 <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${
                                     doc.type === 'expose' ? 'bg-blue-100 text-blue-600' : 
                                     doc.type === 'dissertation' ? 'bg-orange-100 text-orange-600' : 
+                                    doc.type === 'these' ? 'bg-indigo-100 text-indigo-600' :
                                     'bg-green-100 text-green-600'
                                 }`}>
                                     {doc.type}

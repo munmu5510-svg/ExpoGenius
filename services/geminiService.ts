@@ -86,6 +86,8 @@ export const generateDocument = async (config: GenerationConfig, userName: strin
   if (config.type === 'expose') {
     prompt = `
       Génère un exposé structuré sur le thème : "${config.topic}".
+      ${config.objectives ? `OBJECTIFS SPÉCIFIQUES : ${config.objectives}` : ''}
+      
       Contexte :
       - Niveau : ${config.level || "Standard"}
       - Pays : ${config.country || "Non spécifié"}
@@ -109,6 +111,7 @@ export const generateDocument = async (config: GenerationConfig, userName: strin
       Génère un plan détaillé et une synthèse complète pour une THÈSE ACADÉMIQUE.
       Sujet : "${config.topic}".
       Domaine d'étude : ${config.level || "Recherche"}.
+      ${config.objectives ? `OBJECTIFS DE RECHERCHE : ${config.objectives}` : ''}
       Problématique/Hypothèse : "${config.instructions || "À définir par l'IA selon le sujet"}".
       
       Contexte impression :

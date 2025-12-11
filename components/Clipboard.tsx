@@ -33,6 +33,7 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
   const [country, setCountry] = useState('');
   const [professor, setProfessor] = useState('');
   const [date, setDate] = useState('');
+  const [objectives, setObjectives] = useState('');
   
   // Image Upload States
   const [schoolLogo, setSchoolLogo] = useState<string | null>(null);
@@ -111,7 +112,7 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
         topic,
         level,
         currency, bwPrice, colorPrice, budget, school, country, professor, date,
-        citation, instructions, pageCount
+        citation, instructions, pageCount, objectives
     };
     try {
         const doc = await onGenerate(config);
@@ -262,6 +263,14 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
                 {(docType === 'expose' || docType === 'these') && (
                     <>
                         <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder={docType === 'these' ? "Sujet de Thèse" : "Thème de l'exposé"} value={topic} onChange={e => setTopic(e.target.value)} />
+                        
+                        <textarea 
+                            className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 text-sm h-20" 
+                            placeholder="Objectifs de l'exposé (ex: Convaincre sur l'écologie, Présenter l'histoire...)" 
+                            value={objectives} 
+                            onChange={e => setObjectives(e.target.value)} 
+                        />
+
                         <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder={docType === 'these' ? "Domaine (ex: Droit, Médecine...)" : "Niveau d'étude"} value={level} onChange={e => setLevel(e.target.value)} />
                         
                         <div className="space-y-2">
@@ -423,7 +432,7 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
                                         {result.content.cover.schoolLogo ? (
                                              <img src={result.content.cover.schoolLogo} alt="School" className="max-h-24 object-contain mb-2" />
                                         ) : null}
-                                        <div className="font-bold uppercase tracking-widest text-sm text-gray-600">{result.content.cover.schoolName || "ÉTABLISSEMENT"}</div>
+                                        <div className="font-bold uppercase tracking-widest text-sm text-gray-600 mt-2">{result.content.cover.schoolName || "ÉTABLISSEMENT"}</div>
                                     </div>
                                 </div>
                                 

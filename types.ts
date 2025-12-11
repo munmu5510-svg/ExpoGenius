@@ -39,6 +39,7 @@ export interface GenerationConfig {
   professor?: string;
   date?: string;
   department?: string;
+  objectives?: string; // New field
   // Dissertation specific
   citation?: string;
   // Shared

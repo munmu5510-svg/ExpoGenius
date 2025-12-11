@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { User, DocType, GenerationConfig, GeneratedContent } from '../types';
-import { X, ChevronRight, Download, FileText, Share2, Menu, Paperclip, BookOpen, Printer } from 'lucide-react';
+import { X, ChevronRight, Download, FileText, Share2, Menu, Paperclip, BookOpen, Printer, Maximize, Minimize } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
@@ -17,6 +17,7 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
   const [result, setResult] = useState<GeneratedContent | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [scale, setScale] = useState(1);
+  const [isFullScreen, setIsFullScreen] = useState(false);
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const previousWidth = useRef<number>(window.innerWidth);
 
@@ -53,6 +54,15 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
       setIsSidebarOpen(false); 
     }
   }, [initialDoc]);
+
+  // Handle Escape key for fullscreen
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') setIsFullScreen(false);
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, []);
 
   // Mobile responsiveness initialization
   useEffect(() => {
@@ -212,131 +222,149 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
   return (
     <div className="flex h-screen bg-gray-100 dark:bg-gray-900 overflow-hidden relative">
       
-      {/* Mobile Header */}
-      <div className="md:hidden absolute top-0 left-0 right-0 h-14 bg-white dark:bg-gray-800 border-b dark:border-gray-700 flex items-center justify-between px-4 z-30">
-           <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2">
-               <Menu />
-           </button>
-           <span className="font-bold truncate max-w-[150px]">{result ? result.title : 'Clipboard'}</span>
-           <button onClick={onBack} className="p-2 bg-red-50 text-red-500 rounded-full"><X size={18} /></button>
-      </div>
-
-      {/* Sidebar Configuration */}
-      <aside className={`
-          absolute md:relative top-0 left-0 h-full w-full md:w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 
-          flex flex-col z-20 transition-transform duration-300 transform 
-          ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0 md:w-0 md:overflow-hidden'}
-          pt-14 md:pt-0 shadow-2xl md:shadow-none
-      `}>
-        <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center">
-            <h2 className="font-bold text-lg dark:text-white">Configuration</h2>
-            <button onClick={() => setIsSidebarOpen(false)} className="md:hidden p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
-                <ChevronRight size={20} />
+      {/* Mobile Header - Hidden in Full Screen */}
+      {!isFullScreen && (
+        <div className="md:hidden absolute top-0 left-0 right-0 h-14 bg-white dark:bg-gray-800 border-b dark:border-gray-700 flex items-center justify-between px-4 z-30">
+            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2">
+                <Menu />
             </button>
+            <span className="font-bold truncate max-w-[150px]">{result ? result.title : 'Clipboard'}</span>
+            <button onClick={onBack} className="p-2 bg-red-50 text-red-500 rounded-full"><X size={18} /></button>
         </div>
+      )}
 
-        <div className="p-4 space-y-6 overflow-y-auto pb-20">
-            <div>
-                <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">Type de production</label>
-                <div className="flex gap-2">
-                    <button onClick={() => setDocType('expose')} className={`px-3 py-1 rounded-md text-sm ${docType === 'expose' ? 'bg-purple-600 text-white' : 'bg-gray-100 dark:bg-gray-700'}`}>Exposé</button>
-                    <button onClick={() => setDocType('dissertation')} className={`px-3 py-1 rounded-md text-sm ${docType === 'dissertation' ? 'bg-purple-600 text-white' : 'bg-gray-100 dark:bg-gray-700'}`}>Dissert.</button>
-                    <button onClick={() => setDocType('argumentation')} className={`px-3 py-1 rounded-md text-sm ${docType === 'argumentation' ? 'bg-purple-600 text-white' : 'bg-gray-100 dark:bg-gray-700'}`}>Arg.</button>
-                </div>
+      {/* Sidebar Configuration - Hidden in Full Screen */}
+      {!isFullScreen && (
+        <aside className={`
+            absolute md:relative top-0 left-0 h-full w-full md:w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 
+            flex flex-col z-20 transition-transform duration-300 transform 
+            ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0 md:w-0 md:overflow-hidden'}
+            pt-14 md:pt-0 shadow-2xl md:shadow-none
+        `}>
+            <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center">
+                <h2 className="font-bold text-lg dark:text-white">Configuration</h2>
+                <button onClick={() => setIsSidebarOpen(false)} className="md:hidden p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
+                    <ChevronRight size={20} />
+                </button>
             </div>
 
-            {docType === 'expose' && (
-                <>
-                    <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Thème" value={topic} onChange={e => setTopic(e.target.value)} />
-                    <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Niveau d'étude" value={level} onChange={e => setLevel(e.target.value)} />
-                    
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold uppercase text-gray-400">Devise & Budget</label>
-                        <select 
-                            value={currency} 
-                            onChange={e => setCurrency(e.target.value)}
-                            className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
-                        >
-                            <option value="XAF">FCFA (XAF)</option>
-                            <option value="EUR">Euro (€)</option>
-                            <option value="USD">Dollar ($)</option>
-                            <option value="CAD">Dollar (CAD)</option>
-                            <option value="GNF">Franc (GNF)</option>
-                        </select>
-                        <div className="grid grid-cols-2 gap-2">
-                            <div className="flex flex-col">
-                                <label className="text-[10px] text-gray-400">Budget Total</label>
-                                <input className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" type="number" value={budget} onChange={e => setBudget(parseFloat(e.target.value))} />
-                            </div>
-                            <div className="flex flex-col">
-                                <label className="text-[10px] text-gray-400">Prix page N&B</label>
-                                <input className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" type="number" value={bwPrice} onChange={e => setBwPrice(parseFloat(e.target.value))} />
-                            </div>
-                            <div className="flex flex-col col-span-2">
-                                <label className="text-[10px] text-gray-400">Prix page Couleur</label>
-                                <input className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" type="number" value={colorPrice} onChange={e => setColorPrice(parseFloat(e.target.value))} />
+            <div className="p-4 space-y-6 overflow-y-auto pb-20">
+                <div>
+                    <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">Type de production</label>
+                    <div className="flex gap-2">
+                        <button onClick={() => setDocType('expose')} className={`px-3 py-1 rounded-md text-sm ${docType === 'expose' ? 'bg-purple-600 text-white' : 'bg-gray-100 dark:bg-gray-700'}`}>Exposé</button>
+                        <button onClick={() => setDocType('dissertation')} className={`px-3 py-1 rounded-md text-sm ${docType === 'dissertation' ? 'bg-purple-600 text-white' : 'bg-gray-100 dark:bg-gray-700'}`}>Dissert.</button>
+                        <button onClick={() => setDocType('argumentation')} className={`px-3 py-1 rounded-md text-sm ${docType === 'argumentation' ? 'bg-purple-600 text-white' : 'bg-gray-100 dark:bg-gray-700'}`}>Arg.</button>
+                    </div>
+                </div>
+
+                {docType === 'expose' && (
+                    <>
+                        <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Thème" value={topic} onChange={e => setTopic(e.target.value)} />
+                        <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Niveau d'étude" value={level} onChange={e => setLevel(e.target.value)} />
+                        
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold uppercase text-gray-400">Devise & Budget</label>
+                            <select 
+                                value={currency} 
+                                onChange={e => setCurrency(e.target.value)}
+                                className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
+                            >
+                                <option value="XAF">FCFA (XAF)</option>
+                                <option value="EUR">Euro (€)</option>
+                                <option value="USD">Dollar ($)</option>
+                                <option value="CAD">Dollar (CAD)</option>
+                                <option value="GNF">Franc (GNF)</option>
+                            </select>
+                            <div className="grid grid-cols-2 gap-2">
+                                <div className="flex flex-col">
+                                    <label className="text-[10px] text-gray-400">Budget Total</label>
+                                    <input className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" type="number" value={budget} onChange={e => setBudget(parseFloat(e.target.value))} />
+                                </div>
+                                <div className="flex flex-col">
+                                    <label className="text-[10px] text-gray-400">Prix page N&B</label>
+                                    <input className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" type="number" value={bwPrice} onChange={e => setBwPrice(parseFloat(e.target.value))} />
+                                </div>
+                                <div className="flex flex-col col-span-2">
+                                    <label className="text-[10px] text-gray-400">Prix page Couleur</label>
+                                    <input className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" type="number" value={colorPrice} onChange={e => setColorPrice(parseFloat(e.target.value))} />
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Inputs with Paperclip for Images */}
-                    <div className="relative">
-                        <input className="w-full p-2 pr-10 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Établissement" value={school} onChange={e => setSchool(e.target.value)} />
-                        <button onClick={() => schoolInputRef.current?.click()} className="absolute right-2 top-2 text-gray-400 hover:text-purple-600 bg-transparent p-1">
-                            {schoolLogo ? <span className="text-green-500 font-bold text-xs">IMG</span> : <Paperclip size={18} />}
-                        </button>
-                        <input type="file" ref={schoolInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, setSchoolLogo)} />
-                    </div>
+                        {/* Inputs with Paperclip for Images */}
+                        <div className="relative">
+                            <input className="w-full p-2 pr-10 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Établissement" value={school} onChange={e => setSchool(e.target.value)} />
+                            <button onClick={() => schoolInputRef.current?.click()} className="absolute right-2 top-2 text-gray-400 hover:text-purple-600 bg-transparent p-1">
+                                {schoolLogo ? <span className="text-green-500 font-bold text-xs">IMG</span> : <Paperclip size={18} />}
+                            </button>
+                            <input type="file" ref={schoolInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, setSchoolLogo)} />
+                        </div>
 
-                    <div className="relative">
-                        <input className="w-full p-2 pr-10 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Pays" value={country} onChange={e => setCountry(e.target.value)} />
-                        <button onClick={() => countryInputRef.current?.click()} className="absolute right-2 top-2 text-gray-400 hover:text-purple-600 bg-transparent p-1">
-                             {countryEmblem ? <span className="text-green-500 font-bold text-xs">IMG</span> : <Paperclip size={18} />}
-                        </button>
-                         <input type="file" ref={countryInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, setCountryEmblem)} />
-                    </div>
+                        <div className="relative">
+                            <input className="w-full p-2 pr-10 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Pays" value={country} onChange={e => setCountry(e.target.value)} />
+                            <button onClick={() => countryInputRef.current?.click()} className="absolute right-2 top-2 text-gray-400 hover:text-purple-600 bg-transparent p-1">
+                                {countryEmblem ? <span className="text-green-500 font-bold text-xs">IMG</span> : <Paperclip size={18} />}
+                            </button>
+                            <input type="file" ref={countryInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, setCountryEmblem)} />
+                        </div>
 
-                    <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Professeur" value={professor} onChange={e => setProfessor(e.target.value)} />
-                    <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Date (Ville/Mois/Année)" value={date} onChange={e => setDate(e.target.value)} />
-                </>
-            )}
+                        <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Professeur" value={professor} onChange={e => setProfessor(e.target.value)} />
+                        <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Date (Ville/Mois/Année)" value={date} onChange={e => setDate(e.target.value)} />
+                    </>
+                )}
 
-            {(docType === 'dissertation' || docType === 'argumentation') && (
-                <>
-                    <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder={docType === 'dissertation' ? "Citation / Sujet" : "Sujet"} value={topic} onChange={e => setTopic(e.target.value)} />
-                    <textarea className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Consigne spécifique..." value={instructions} onChange={e => setInstructions(e.target.value)} />
-                    <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" type="number" placeholder="Nombre de pages" value={pageCount} onChange={e => setPageCount(parseInt(e.target.value))} />
-                </>
-            )}
+                {(docType === 'dissertation' || docType === 'argumentation') && (
+                    <>
+                        <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder={docType === 'dissertation' ? "Citation / Sujet" : "Sujet"} value={topic} onChange={e => setTopic(e.target.value)} />
+                        <textarea className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Consigne spécifique..." value={instructions} onChange={e => setInstructions(e.target.value)} />
+                        <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" type="number" placeholder="Nombre de pages" value={pageCount} onChange={e => setPageCount(parseInt(e.target.value))} />
+                    </>
+                )}
 
-            <button 
-                onClick={handleGenerateClick}
-                disabled={loading}
-                className="w-full py-3 bg-purple-600 text-white font-bold rounded-lg shadow hover:bg-purple-700 disabled:opacity-50 flex justify-center items-center gap-2"
-            >
-                {loading ? <span className="animate-spin">⌛</span> : "Générer"}
-            </button>
-
-            {result && (
                 <button 
-                    onClick={downloadPDF}
-                    className="w-full py-3 bg-blue-600 text-white font-bold rounded-lg shadow hover:bg-blue-700 flex justify-center items-center gap-2 mt-2"
+                    onClick={handleGenerateClick}
+                    disabled={loading}
+                    className="w-full py-3 bg-purple-600 text-white font-bold rounded-lg shadow hover:bg-purple-700 disabled:opacity-50 flex justify-center items-center gap-2"
                 >
-                    <Download size={20} /> Télécharger PDF
+                    {loading ? <span className="animate-spin">⌛</span> : "Générer"}
                 </button>
-            )}
-        </div>
-      </aside>
+
+                {result && (
+                    <button 
+                        onClick={downloadPDF}
+                        className="w-full py-3 bg-blue-600 text-white font-bold rounded-lg shadow hover:bg-blue-700 flex justify-center items-center gap-2 mt-2"
+                    >
+                        <Download size={20} /> Télécharger PDF
+                    </button>
+                )}
+            </div>
+        </aside>
+      )}
 
       {/* Main View / Preview */}
-      <main ref={previewContainerRef} className="flex-1 overflow-y-auto pt-14 md:pt-4 p-4 md:p-8 flex justify-center bg-gray-100 dark:bg-gray-900">
-        <button 
-             onClick={onBack}
-             className="absolute top-4 right-8 hidden md:flex items-center justify-center p-2 bg-white dark:bg-gray-800 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-full shadow-sm z-50 transition-colors"
-             title="Fermer Clipboard"
-        >
-             <X size={24} />
-        </button>
+      <main ref={previewContainerRef} className={`flex-1 overflow-y-auto flex justify-center bg-gray-100 dark:bg-gray-900 ${isFullScreen ? 'fixed inset-0 z-50 p-0' : 'pt-14 md:pt-4 p-4 md:p-8'}`}>
+        
+        {/* Floating Exit Button for Full Screen */}
+        {isFullScreen && (
+             <button 
+                onClick={() => setIsFullScreen(false)}
+                className="fixed top-6 right-6 z-[60] p-3 bg-black/50 text-white backdrop-blur-md rounded-full shadow-xl hover:bg-black/70 transition-all animate-fade-in"
+                title="Quitter le plein écran"
+            >
+                <Minimize size={24} />
+            </button>
+        )}
+
+        {!isFullScreen && (
+            <button 
+                onClick={onBack}
+                className="absolute top-4 right-8 hidden md:flex items-center justify-center p-2 bg-white dark:bg-gray-800 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-full shadow-sm z-50 transition-colors"
+                title="Fermer Clipboard"
+            >
+                <X size={24} />
+            </button>
+        )}
 
         {!result ? (
             <div className="flex flex-col items-center justify-center text-gray-400">
@@ -345,23 +373,29 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
                 <button onClick={() => setIsSidebarOpen(true)} className="md:hidden mt-4 text-purple-600 underline">Ouvrir la configuration</button>
             </div>
         ) : (
-            <div className="w-full flex justify-center items-start">
+            <div className={`w-full flex justify-center items-start ${isFullScreen ? 'min-h-screen' : ''}`}>
                  {/* This wrapper handles the A4 scaling on mobile */}
                  <div style={{ transform: `scale(${scale})`, transformOrigin: 'top center', width: '210mm' }} className="transition-transform duration-200">
                      
-                     <div className="flex justify-between items-center mb-4 no-print bg-gray-100 dark:bg-gray-900 py-2">
-                         <h2 className="font-bold text-xl dark:text-white truncate max-w-[200px]">{result.title}</h2>
-                         <div className="flex gap-2">
-                            <button onClick={downloadPDF} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm shadow-md">
-                                <Download size={18} /> <span className="hidden md:inline">PDF</span>
-                            </button>
-                            {user.plan === 'pro_plus' && (
-                                 <button className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 text-sm shadow-md">
-                                    <Share2 size={18} /> <span className="hidden md:inline">Pack Pro+</span>
+                     {/* Toolbar - Hidden in full screen for immersion */}
+                     {!isFullScreen && (
+                         <div className="flex justify-between items-center mb-4 no-print bg-gray-100 dark:bg-gray-900 py-2">
+                             <h2 className="font-bold text-xl dark:text-white truncate max-w-[200px]">{result.title}</h2>
+                             <div className="flex gap-2">
+                                <button onClick={() => setIsFullScreen(true)} className="flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded hover:bg-gray-300 dark:hover:bg-gray-600 text-sm shadow-md transition-colors">
+                                    <Maximize size={18} /> <span className="hidden md:inline">Plein écran</span>
                                 </button>
-                            )}
+                                <button onClick={downloadPDF} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm shadow-md">
+                                    <Download size={18} /> <span className="hidden md:inline">PDF</span>
+                                </button>
+                                {user.plan === 'pro_plus' && (
+                                     <button className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 text-sm shadow-md">
+                                        <Share2 size={18} /> <span className="hidden md:inline">Pack Pro+</span>
+                                    </button>
+                                )}
+                             </div>
                          </div>
-                     </div>
+                     )}
 
                      {/* Document Render Container */}
                      <div ref={reportRef} className="bg-white shadow-2xl text-black">

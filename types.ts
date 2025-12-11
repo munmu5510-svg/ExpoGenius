@@ -80,6 +80,8 @@ export interface ExposeContent {
 }
 
 export interface GeneratedContent {
+  // Fix: Added optional id property to GeneratedContent to prevent TS error in mockBackend when accessing docContent.id
+  id?: string;
   type: DocType;
   title: string;
   content: {

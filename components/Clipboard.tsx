@@ -316,6 +316,15 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
             >
                 {loading ? <span className="animate-spin">⌛</span> : "Générer"}
             </button>
+
+            {result && (
+                <button 
+                    onClick={downloadPDF}
+                    className="w-full py-3 bg-blue-600 text-white font-bold rounded-lg shadow hover:bg-blue-700 flex justify-center items-center gap-2 mt-2"
+                >
+                    <Download size={20} /> Télécharger PDF
+                </button>
+            )}
         </div>
       </aside>
 

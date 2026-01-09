@@ -34,13 +34,13 @@ const localData = {
 const initLocal = () => {
   if (!localStorage.getItem(KEYS.PROMOS)) {
     localStorage.setItem(KEYS.PROMOS, JSON.stringify([
-      { code: 'admin2301', type: 'admin', value: 0, active: true },
-      { code: 'wos2301', type: 'generations', value: 10, active: true }
+      { code: 'wyr-admin', type: 'admin', value: 0, active: true },
+      { code: 'wyr-start', type: 'generations', value: 10, active: true }
     ]));
   }
   if (!localStorage.getItem(KEYS.NOTIFS)) {
     localStorage.setItem(KEYS.NOTIFS, JSON.stringify([
-        { id: '1', message: 'Bienvenue sur WordPoz !', date: Date.now(), read: false }
+        { id: '1', message: '¡Bienvenido a WyRunner!', date: Date.now(), read: false }
     ]));
   }
 };
@@ -103,7 +103,7 @@ export const backend = {
                           // Profile missing in DB? Create one based on Auth
                           const newUser: User = {
                               id: firebaseUser.uid,
-                              name: firebaseUser.displayName || 'Utilisateur',
+                              name: firebaseUser.displayName || 'Usuario',
                               email: firebaseUser.email || '',
                               plan: 'freemium',
                               generationsUsed: 0,
@@ -155,14 +155,14 @@ export const backend = {
             return newUser;
         } catch (e: any) {
             console.warn("Firebase Register Failed, using Local:", e);
-            if (e.code === 'auth/email-already-in-use') throw new Error("Cet email est déjà utilisé.");
+            if (e.code === 'auth/email-already-in-use') throw new Error("Este email ya está en uso.");
             // Fallthrough to local
         }
     }
 
     // LOCAL FALLBACK
     const users = localData.getUsers();
-    if (users.find((u: User) => u.email === email)) throw new Error("Email déjà utilisé (Local)");
+    if (users.find((u: User) => u.email === email)) throw new Error("Email ya en uso (Local)");
     
     const newUser: User = {
       id: Date.now().toString(),
@@ -195,7 +195,7 @@ export const backend = {
             }
         } catch (e: any) {
              console.warn("Firebase Login Failed, using Local:", e);
-             if (e.code === 'auth/invalid-credential') throw new Error("Email ou mot de passe incorrect.");
+             if (e.code === 'auth/invalid-credential') throw new Error("Email o contraseña incorrectos.");
              // Fallthrough to local
         }
     }
@@ -203,7 +203,7 @@ export const backend = {
     // LOCAL FALLBACK
     const users = localData.getUsers();
     const user = users.find((u: User) => u.email === email);
-    if (!user) throw new Error("Utilisateur introuvable (Local)");
+    if (!user) throw new Error("Usuario no encontrado (Local)");
     
     localData.setCurrentUser(user);
     await new Promise(r => setTimeout(r, 600));
@@ -213,7 +213,7 @@ export const backend = {
   loginWithGoogle: async (): Promise<User> => {
       // NOTE: For full Google Auth in Firebase, we need GoogleAuthProvider.
       // Keeping this as "Simulated" for now unless specifically requested to switch to real Google Auth provider
-      console.warn("⚠️ Mode Local : Simulation du Login Google");
+      console.warn("⚠️ Modo Local : Simulación de inicio de sesión con Google");
       await new Promise(r => setTimeout(r, 800));
       
       const users = localData.getUsers();
@@ -222,7 +222,7 @@ export const backend = {
       if (!googleUser) {
           googleUser = {
             id: 'google-demo-user-persistent',
-            name: "Google User Demo",
+            name: "Usuario Demo Google",
             email: "demo@google.com",
             plan: 'freemium',
             generationsUsed: 0,
@@ -370,18 +370,18 @@ export const backend = {
       const promos = JSON.parse(localStorage.getItem(KEYS.PROMOS) || '[]');
       const promo = promos.find((p: PromoCode) => p.code === code && p.active);
       
-      if (!promo) return { success: false, message: "Code invalide ou expiré" };
+      if (!promo) return { success: false, message: "Código inválido o expirado" };
       
       if (promo.type === 'admin') {
           const updatedUser = { ...user, isAdmin: true };
           backend.updateUser(updatedUser); // Will sync both FB and Local
-          return { success: true, message: "Mode Admin activé", user: updatedUser };
+          return { success: true, message: "Modo Admin activado", user: updatedUser };
       } else if (promo.type === 'generations') {
           const updatedUser = { ...user, generationsLimit: user.generationsLimit + promo.value };
           backend.updateUser(updatedUser); // Will sync both FB and Local
-          return { success: true, message: `${promo.value} générations ajoutées !`, user: updatedUser };
+          return { success: true, message: `¡${promo.value} generaciones añadidas!`, user: updatedUser };
       }
-      return { success: false, message: "Erreur inconnue" };
+      return { success: false, message: "Error desconocido" };
   },
 
   // Admin Methods

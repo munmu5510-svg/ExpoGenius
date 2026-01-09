@@ -1,7 +1,7 @@
 
 export type ViewState = 'splash' | 'landing' | 'auth' | 'dashboard' | 'clipboard' | 'profile' | 'admin' | 'wos_chat';
 export type DocType = 'expose' | 'dissertation' | 'argumentation' | 'these';
-export type PlanType = 'freemium' | 'standard' | 'pro_plus';
+export type PlanType = 'freemium' | 'starter' | 'pro_authority';
 
 export interface User {
   id: string;

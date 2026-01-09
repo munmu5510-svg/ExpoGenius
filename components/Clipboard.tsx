@@ -402,7 +402,8 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
                                 <button onClick={downloadPDF} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm shadow-md">
                                     <Download size={18} /> <span className="hidden md:inline">PDF</span>
                                 </button>
-                                {user.plan === 'pro_plus' && (
+                                {/* Fix: Corrected the plan type check from 'pro_plus' to 'pro_authority' to match the defined PlanType. */}
+                                {user.plan === 'pro_authority' && (
                                      <button className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 text-sm shadow-md">
                                         <Share2 size={18} /> <span className="hidden md:inline">Pack Pro+</span>
                                     </button>

@@ -11,7 +11,7 @@ import { Dashboard } from './components/Dashboard';
 import { Clipboard } from './components/Clipboard';
 import { UserProfile } from './components/UserProfile';
 import { AdminPanel } from './components/AdminPanel';
-import { WosAiChat } from './components/WosAiChat';
+import { RunnaAiChat } from './components/WosAiChat';
 
 export default function App() {
   const [view, setView] = useState<ViewState>('splash');
@@ -94,7 +94,7 @@ export default function App() {
                 initialDoc={selectedDoc}
                 onGenerate={async (config) => {
                     if (user!.generationsUsed >= user!.generationsLimit) {
-                        alert("Limite atteinte ! Passez à Standard.");
+                        alert("¡Límite de generaciones alcanzado! Actualiza a un plan superior para continuar.");
                         return null;
                     }
                     const doc = await generateDocument(config, user!.name);
@@ -119,7 +119,7 @@ export default function App() {
                 onBack={() => setView('dashboard')} 
             />;
         case 'wos_chat':
-            return <WosAiChat onBack={() => setView('dashboard')} />;
+            return <RunnaAiChat onBack={() => setView('dashboard')} />;
         default: return <Landing onGetStarted={() => setView('auth')} />;
     }
   };

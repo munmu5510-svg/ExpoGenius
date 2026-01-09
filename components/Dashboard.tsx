@@ -98,7 +98,7 @@ export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, togg
 
       try {
         if (selectionMode === 'delete') {
-            if (confirm(`Supprimer ${selectedIds.length} document(s) ?`)) {
+            if (confirm(`¿Eliminar ${selectedIds.length} documento(s)?`)) {
                 await backend.deleteDocuments(selectedIds);
                 setDocs(await backend.getUserDocuments(user.id)); // Reload
                 setSelectionMode('none');
@@ -107,7 +107,7 @@ export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, togg
         } else if (selectionMode === 'edit') {
             const doc = docs.find((d: any) => (d.id || d.createdAt.toString()) === selectedIds[0]);
             if (doc) {
-                const newTitle = prompt("Nouveau titre :", doc.title);
+                const newTitle = prompt("Nuevo título:", doc.title);
                 if (newTitle) {
                     await backend.updateDocumentTitle(selectedIds[0], newTitle);
                     setDocs(await backend.getUserDocuments(user.id));
@@ -117,12 +117,12 @@ export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, togg
             }
         } else if (selectionMode === 'template') {
             // Mock Share
-            alert(`${selectedIds.length} document(s) partagé(s) comme template(s) !`);
+            alert(`${selectedIds.length} documento(s) compartido(s) como plantilla(s)!`);
             setSelectionMode('none');
             setSelectedIds([]);
         }
       } catch (e) {
-          alert("Erreur lors de l'action");
+          alert("Error durante la acción");
       } finally {
           setActionLoading(false);
       }
@@ -134,12 +134,12 @@ export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, togg
       <header className="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-40 px-4 py-3 flex justify-between items-center">
         <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full wos-gradient flex items-center justify-center text-white font-serif font-bold">W</div>
-            <span className="font-bold text-lg hidden md:block">WordPoz</span>
+            <span className="font-bold text-lg hidden md:block">WyRunner</span>
         </div>
         
         <div className="flex items-center gap-3">
             <div className="px-3 py-1 bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-200 rounded-full text-xs font-semibold uppercase whitespace-nowrap">
-                {user.plan === 'standard' ? 'STD' : user.plan === 'pro_plus' ? 'PRO+' : 'FREE'}
+                {user.plan === 'starter' ? 'STARTER' : user.plan === 'pro_authority' ? 'PRO' : 'FREE'}
             </div>
             
             <button onClick={toggleTheme} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
@@ -159,14 +159,14 @@ export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, togg
                 {showNotifPanel && (
                     <div className="absolute top-full right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border dark:border-gray-700 z-50 overflow-hidden animate-fade-in origin-top-right">
                         <div className="p-3 border-b dark:border-gray-700 font-bold flex justify-between items-center">
-                            <span>Notifications</span>
-                            <span className="text-xs text-gray-400">{unreadCount} non lues</span>
+                            <span>Notificaciones</span>
+                            <span className="text-xs text-gray-400">{unreadCount} sin leer</span>
                         </div>
                         <div className="max-h-80 overflow-y-auto">
                             {notifications.length === 0 ? (
                                 <div className="p-8 text-center text-gray-400 flex flex-col items-center">
                                     <Inbox size={32} className="mb-2 opacity-50" />
-                                    <p className="text-sm">Rien à signaler</p>
+                                    <p className="text-sm">Nada que señalar</p>
                                 </div>
                             ) : (
                                 notifications.map(notif => (
@@ -202,7 +202,7 @@ export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, togg
                 <Search className="absolute left-3 top-3 text-gray-400" size={18} />
                 <input 
                     type="text" 
-                    placeholder="Rechercher une production..." 
+                    placeholder="Buscar un documento..." 
                     className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 outline-none focus:ring-2 focus:ring-purple-500"
                 />
             </div>
@@ -219,13 +219,13 @@ export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, togg
                     {isMenuOpen && (
                         <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-xl border dark:border-gray-700 z-50 overflow-hidden animate-fade-in origin-top-right">
                             <button onClick={() => handleAction('delete')} className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 text-red-500">
-                                <Trash2 size={16} /> Supprimer
+                                <Trash2 size={16} /> Eliminar
                             </button>
                             <button onClick={() => handleAction('edit')} className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2">
-                                <Edit2 size={16} /> Modifier (Renommer)
+                                <Edit2 size={16} /> Renombrar
                             </button>
                             <button onClick={() => handleAction('template')} className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 text-blue-500">
-                                <Share2 size={16} /> Envoyer comme Template
+                                <Share2 size={16} /> Enviar como Plantilla
                             </button>
                         </div>
                     )}
@@ -236,7 +236,7 @@ export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, togg
                     className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 wos-gradient text-white rounded-lg font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all whitespace-nowrap"
                 >
                     <Plus size={20} />
-                    Nouveau
+                    Nuevo
                 </button>
             </div>
         </div>
@@ -246,7 +246,7 @@ export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, togg
             <div className="mb-6 p-4 bg-purple-100 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-xl flex justify-between items-center animate-pulse">
                 <div className="flex items-center gap-2 font-bold text-purple-800 dark:text-purple-200 text-sm md:text-base">
                     <CheckSquare size={20} />
-                    {selectionMode === 'delete' ? 'Sélectionner pour Supprimer' : selectionMode === 'edit' ? 'Choisir pour Modifier' : 'Sélectionner pour Template'}
+                    {selectionMode === 'delete' ? 'Seleccionar para Eliminar' : selectionMode === 'edit' ? 'Seleccionar para Renombrar' : 'Seleccionar para Plantilla'}
                 </div>
                 <div className="flex gap-2">
                     <button onClick={() => setSelectionMode('none')} className="p-2 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full"><X size={20} /></button>
@@ -264,8 +264,8 @@ export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, togg
                 <div className="mx-auto w-20 h-20 bg-gray-200 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
                     <List size={32} />
                 </div>
-                <p>Aucune production pour le moment.</p>
-                <p className="text-sm">Cliquez sur Nouveau pour commencer.</p>
+                <p>Ningún documento por ahora.</p>
+                <p className="text-sm">Haz clic en Nuevo para empezar.</p>
             </div>
         ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -324,7 +324,7 @@ export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, togg
                     className="px-6 py-3 bg-gray-900 dark:bg-white text-white dark:text-black rounded-full shadow-2xl font-bold flex items-center gap-2"
                 >
                     {actionLoading ? <Loader className="animate-spin" size={18} /> : (selectionMode === 'delete' ? <Trash2 size={18} /> : selectionMode === 'edit' ? <Edit2 size={18} /> : <Share2 size={18} />)}
-                    Confirmer ({selectedIds.length})
+                    Confirmar ({selectedIds.length})
                 </button>
             </div>
         )}

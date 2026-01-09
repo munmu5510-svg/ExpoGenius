@@ -8,9 +8,9 @@ interface ChatMessage {
   text: string;
 }
 
-export const WosAiChat = ({ onBack }: { onBack: () => void }) => {
+export const RunnaAiChat = ({ onBack }: { onBack: () => void }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { id: 'welcome', role: 'model', text: 'Bonjour ! Je suis WOS AI. Comment puis-je vous aider dans vos travaux académiques aujourd\'hui ?' }
+    { id: 'welcome', role: 'model', text: '¡Hola! Soy Runna. ¿Cómo puedo ayudarte con tus trabajos académicos hoy?' }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -60,8 +60,8 @@ export const WosAiChat = ({ onBack }: { onBack: () => void }) => {
                     <Sparkles size={16} />
                 </div>
                 <div>
-                    <h2 className="font-bold text-lg leading-none">WOS AI</h2>
-                    <span className="text-xs text-green-500 font-medium">Assistant Online</span>
+                    <h2 className="font-bold text-lg leading-none">Runna AI</h2>
+                    <span className="text-xs text-green-500 font-medium">Asistente en línea</span>
                 </div>
             </div>
         </div>
@@ -108,7 +108,7 @@ export const WosAiChat = ({ onBack }: { onBack: () => void }) => {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                    placeholder="Posez une question..."
+                    placeholder="Haz una pregunta..."
                     className="flex-1 bg-transparent border-none focus:ring-0 px-4 py-2 outline-none dark:text-white text-base"
                 />
                 <button 

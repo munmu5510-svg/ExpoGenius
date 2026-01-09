@@ -12,8 +12,8 @@ export const Splash = () => {
                 <Sparkles className="w-6 h-6 text-purple-600" />
              </div>
         </div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2 font-serif">WordPoz</h1>
-        <p className="text-gray-500 dark:text-gray-400 tracking-widest uppercase text-sm">Keep Your Idea Alive</p>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2 font-serif">WyRunner</h1>
+        <p className="text-gray-500 dark:text-gray-400 tracking-widest uppercase text-sm">Excelencia Académica Automatizada</p>
     </div>
   );
 };

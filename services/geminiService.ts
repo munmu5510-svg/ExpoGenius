@@ -5,41 +5,41 @@ import { GenerationConfig, GeneratedContent } from "../types";
 const apiKey = process.env.API_KEY;
 const ai = new GoogleGenAI({ apiKey: apiKey || 'dummy-key-to-prevent-crash-init' });
 
-// --- CONNAISSANCES DE WOS AI ---
-const WOS_SYSTEM_INSTRUCTION = `
-Tu es WOS AI, l'assistant intelligent et le guide officiel de l'application "WordPoz".
+// --- CONOCIMIENTO DE RUNNA AI ---
+const RUNNA_SYSTEM_INSTRUCTION = `
+Eres Runna, la asistente de IA inteligente y guía oficial de la aplicación "WyRunner".
 
-TON RÔLE :
-1. Aider les élèves/étudiants dans la rédaction académique et la recherche d'idées.
-2. Guider les utilisateurs pas à pas dans l'utilisation de l'application WordPoz.
-3. Expliquer les fonctionnalités, les problèmes courants et les formules d'abonnement.
+TU ROL:
+1. Ayudar a los estudiantes con la redacción académica y la búsqueda de ideas.
+2. Guiar a los usuarios paso a paso en el uso de la aplicación WyRunner.
+3. Explicar las características, problemas comunes y planes de suscripción.
 
-À PROPOS DE WORDPOZ :
-WordPoz est une application innovante qui génère des documents scolaires (Exposés, Dissertations, Argumentations, Thèses) optimisés selon le budget d'impression de l'utilisateur.
+ACERCA DE WYRUNNER:
+WyRunner es una aplicación innovadora que genera documentos académicos (Presentaciones, Ensayos, Argumentos, Tesis) optimizados según el presupuesto de impresión del usuario.
 
-GUIDE D'UTILISATION (Ce que tu dois savoir) :
-- **Dashboard (Accueil)** : C'est là que l'utilisateur voit ses documents récents. Il peut cliquer sur le menu (liste) à côté du bouton "+" pour Supprimer, Renommer ou utiliser un document comme modèle.
-- **Création (Clipboard)** : En cliquant sur "Nouveau" ou le bouton "+", l'utilisateur accède au formulaire.
-  - Il peut choisir : Exposé, Thèse, Dissertation ou Argumentation.
-  - Il peut importer les logos de son établissement et de son pays via l'icône trombone (Paperclip) pour une page de garde professionnelle.
-  - **Spécificité WordPoz** : L'utilisateur entre son BUDGET total et le prix d'impression (N&B et Couleur). L'IA optimise le document pour ne pas dépasser ce coût.
-- **Export** : Une fois généré, le document peut être téléchargé en PDF (format A4 standard) ou partagé via texte.
+GUÍA DE USO (Lo que debes saber):
+- **Dashboard (Inicio)**: Aquí el usuario ve sus documentos recientes. Puede hacer clic en el menú (lista) junto al botón "+" para Eliminar, Renombrar o usar un documento como plantilla.
+- **Creación (Clipboard)**: Al hacer clic en "Nuevo" o el botón "+", el usuario accede al formulario.
+  - Puede elegir: Presentación, Tesis, Ensayo o Argumento.
+  - Puede importar los logos de su institución y país mediante el icono del clip (Paperclip) para una portada profesional.
+  - **Especialidad de WyRunner**: El usuario introduce su PRESUPUESTO total y el precio de impresión (B/N y Color). La IA optimiza el documento para no exceder este costo.
+- **Exportación**: Una vez generado, el documento se puede descargar en PDF (formato A4 estándar) o compartir por texto.
 
-LES FORMULES (ABONNEMENTS) :
-1. **Freemium** : Gratuit. Limité à 6 générations. Idéal pour tester.
-2. **Standard** : Générations illimitées, export PDF, support prioritaire.
-3. **Pro+** : Le pack ultime. Inclut tout le Standard + Génération automatique de Questions/Réponses (Q&A) pour préparer l'oral + Rédaction d'un Discours (Speech) de présentation.
+LOS PLANES (SUSCRIPCIONES):
+1. **Freemium**: Gratis. Limitado a 6 generaciones. Ideal para probar.
+2. **Starter**: 200 FCFA/día. Generaciones ilimitadas, exportación a PDF, soporte prioritario.
+3. **Pro Authority**: 500 FCFA/7 días. Todo lo de Starter + Exportación a PPT (PowerPoint), Preguntas y Respuestas (Q&A) para preparar la defensa oral.
 
-PROCÉDURE DE PAIEMENT & CONTACT :
-Si un utilisateur demande comment payer ou comment contacter le support :
-"Allez dans votre Profil (icône utilisateur en haut à droite), choisissez une formule (Standard ou Pro+). L'application vous demandera d'effectuer un transfert de crédit au numéro **+240 555 320 354**. Une fois le transfert effectué, le support activera votre compte."
-Le numéro officiel du service client est le **+240 555 320 354**.
+PROCEDIMIENTO DE PAGO Y CONTACTO:
+Si un usuario pregunta cómo pagar o cómo contactar al soporte:
+"Ve a tu Perfil (icono de usuario arriba a la derecha), elige un plan (Starter o Pro Authority). La aplicación te pedirá que realices una transferencia de crédito al número **+240 555 320 354**. Una vez realizada la transferencia, el soporte activará tu cuenta."
+El número oficial de atención al cliente es **+240 555 320 354**.
 
-RÈGLES DE COMPORTEMENT :
-- Sois toujours courtois, encourageant, pédagogique et concis.
-- Si l'utilisateur a un problème technique (ex: PDF), conseille-lui de vérifier sa connexion ou de réessayer.
-- Ne mentionne **JAMAIS** l'existence du panneau Administrateur ou des codes promo de type "admin".
-- Si on te demande qui t'a créé, réponds simplement "L'équipe WordPoz".
+REGLAS DE COMPORTAMIENTO:
+- Sé siempre cortés, alentador, pedagógico y conciso.
+- Si un usuario tiene un problema técnico (ej: PDF), aconséjale que verifique su conexión o que lo intente de nuevo.
+- **NUNCA** menciones la existencia del panel de Administrador o los códigos promocionales de tipo "admin".
+- Si te preguntan quién te creó, responde simplemente "El equipo de WyRunner".
 `;
 
 const handleGeminiError = (error: any) => {
@@ -47,107 +47,107 @@ const handleGeminiError = (error: any) => {
     const errStr = JSON.stringify(error) || error.message || "";
     
     if (errStr.includes("Rpc failed") || errStr.includes("xhr error") || errStr.includes("fetch failed") || errStr.includes("NetworkError")) {
-        throw new Error("Erreur de connexion (RPC). Le serveur IA est injoignable. Vérifiez votre connexion Internet, ou essayez de désactiver votre VPN/Adblock.");
+        throw new Error("Error de conexión (RPC). El servidor de IA no está accesible. Revisa tu conexión a Internet o intenta desactivar tu VPN/Adblock.");
     }
     if (errStr.includes("API key not valid") || !process.env.API_KEY) {
-        throw new Error("Clé API Gemini invalide ou manquante. Contactez l'administrateur.");
+        throw new Error("Clave de API de Gemini inválida o faltante. Contacta al administrador.");
     }
     throw error;
 };
 
 export const chatWithWosAI = async (message: string, history: {role: 'user' | 'model', parts: [{text: string}]}[]): Promise<string> => {
-  if (!apiKey) return "Erreur : Clé API manquante.";
+  if (!apiKey) return "Error: Falta la clave de API.";
   
   try {
     const chat = ai.chats.create({
       model: "gemini-2.5-flash",
       config: {
-        systemInstruction: WOS_SYSTEM_INSTRUCTION,
+        systemInstruction: RUNNA_SYSTEM_INSTRUCTION,
       },
       history: history
     });
 
     const response = await chat.sendMessage({ message: message });
-    return response.text || "Désolé, je n'ai pas pu générer de réponse.";
+    return response.text || "Lo siento, no pude generar una respuesta.";
   } catch (error) {
     handleGeminiError(error);
-    return "Une erreur est survenue lors de la communication.";
+    return "Ocurrió un error durante la comunicación.";
   }
 };
 
 export const generateDocument = async (config: GenerationConfig, userName: string): Promise<GeneratedContent> => {
-  if (!apiKey) throw new Error("Clé API Gemini manquante.");
+  if (!apiKey) throw new Error("Falta la clave de API de Gemini.");
 
   const modelId = "gemini-2.5-flash"; 
 
   let prompt = "";
-  let docSystemInstruction = "You are WordPoz AI, a professional academic writing assistant. Your goal is to produce high-quality, structured, and budget-optimized school documents.";
+  let docSystemInstruction = "Eres Runna AI, un asistente de redacción académica profesional. Tu objetivo es producir documentos escolares de alta calidad, estructurados y optimizados para el presupuesto.";
 
   if (config.type === 'expose') {
     prompt = `
-      Génère un exposé structuré sur le thème : "${config.topic}".
-      ${config.objectives ? `OBJECTIFS SPÉCIFIQUES : ${config.objectives}` : ''}
+      Genera una presentación estructurada sobre el tema: "${config.topic}".
+      ${config.objectives ? `OBJETIVOS ESPECÍFICOS: ${config.objectives}` : ''}
       
-      Contexte :
-      - Niveau : ${config.level || "Standard"}
-      - Pays : ${config.country || "Non spécifié"}
-      - Établissement : ${config.school || "Non spécifié"}
-      - Budget impression : ${config.budget} ${config.currency} (Prix N&B: ${config.bwPrice}, Couleur: ${config.colorPrice}). Adapte la longueur et l'usage de la couleur (images) selon ce budget.
+      Contexto:
+      - Nivel: ${config.level || "Estándar"}
+      - País: ${config.country || "No especificado"}
+      - Institución: ${config.school || "No especificada"}
+      - Presupuesto de impresión: ${config.budget} ${config.currency} (Precio B/N: ${config.bwPrice}, Color: ${config.colorPrice}). Adapta la longitud y el uso del color (imágenes) según este presupuesto.
       
-      Structure requise (JSON) :
-      1. Infos de couverture (titre, sous-titre).
-      2. Sommaire (estime les pages). IMPORTANT : La liste du sommaire doit contenir UNIQUEMENT : Introduction, les Titres des Sections, Conclusion et Bibliographie. Ne JAMAIS inclure "Couverture", "Sommaire", "Questions-Réponses", "Discours" ni "Speech" dans cette liste.
-      3. Introduction.
-      4. Sections détaillées (titre, contenu, suggestions visuelles). Marque les termes techniques ou importants.
-      5. Conclusion.
-      6. Bibliographie.
-      7. (Bonus - Pro+) 5 Questions-Réponses pertinentes pour préparer l'oral (même si non affiché en mode gratuit, génère-les).
-      8. (Bonus - Pro+) Un petit discours de présentation (speech) (même si non affiché en mode gratuit, génère-le).
-      9. Estimation du nombre de pages (chiffre entier).
-      10. Recommandation IA courte pour l'élève (ex: "Attention, ce sujet est vaste...").
+      Estructura requerida (JSON):
+      1. Información de portada (título, subtítulo).
+      2. Índice (estima las páginas). IMPORTANTE: La lista del índice debe contener ÚNICAMENTE: Introducción, los Títulos de las Secciones, Conclusión y Bibliografía. NUNCA incluyas "Portada", "Índice", "Preguntas y Respuestas" o "Discurso" en esta lista.
+      3. Introducción.
+      4. Secciones detalladas (título, contenido, sugerencias visuales). Marca los términos técnicos o importantes.
+      5. Conclusión.
+      6. Bibliografía.
+      7. (Bonus - Pro+) 5 Preguntas y Respuestas pertinentes para preparar la defensa oral (aunque no se muestren en el modo gratuito, genéralas).
+      8. (Bonus - Pro+) Un breve discurso de presentación (aunque no se muestre en el modo gratuito, genéralo).
+      9. Estimación del número de páginas (número entero).
+      10. Recomendación corta de la IA para el estudiante (ej: "Atención, este tema es muy amplio...").
     `;
   } else if (config.type === 'these') {
     prompt = `
-      Génère un plan détaillé et une synthèse complète pour une THÈSE ACADÉMIQUE.
-      Sujet : "${config.topic}".
-      Domaine d'étude : ${config.level || "Recherche"}.
-      ${config.objectives ? `OBJECTIFS DE RECHERCHE : ${config.objectives}` : ''}
-      Problématique/Hypothèse : "${config.instructions || "À définir par l'IA selon le sujet"}".
+      Genera un plan detallado y una síntesis completa para una TESIS ACADÉMICA.
+      Tema: "${config.topic}".
+      Campo de estudio: ${config.level || "Investigación"}.
+      ${config.objectives ? `OBJETIVOS DE INVESTIGACIÓN: ${config.objectives}` : ''}
+      Problemática/Hipótesis: "${config.instructions || "A definir por la IA según el tema"}".
       
-      Contexte impression :
-      - Budget impression : ${config.budget} ${config.currency}.
+      Contexto de impresión:
+      - Presupuesto de impresión: ${config.budget} ${config.currency}.
       
-      ATTENTION : Une thèse est un document très formel. Adopte un ton doctoral, rigoureux et scientifique.
-      Structure requise (JSON) :
-      1. Infos de couverture (Titre académique, "Thèse de Doctorat/Master", etc.).
-      2. Sommaire.
-      3. Introduction (doit inclure : Contexte, Problématique, Hypothèses, Méthodologie annoncée).
-      4. Corps de la thèse (Sections) :
-         - Section 1 : État de l'art (Revue de littérature).
-         - Section 2 : Méthodologie de recherche.
-         - Section 3 : Résultats et Analyse.
-         - Section 4 : Discussion.
-      5. Conclusion (Synthèse, Limites, Ouvertures).
-      6. Bibliographie (Style APA ou approprié).
+      ATENCIÓN: Una tesis es un documento muy formal. Adopta un tono doctoral, riguroso y científico.
+      Estructura requerida (JSON):
+      1. Información de portada (Título académico, "Tesis de Doctorado/Maestría", etc.).
+      2. Índice.
+      3. Introducción (debe incluir: Contexto, Problemática, Hipótesis, Metodología anunciada).
+      4. Cuerpo de la tesis (Secciones):
+         - Sección 1: Estado del arte (Revisión de la literatura).
+         - Sección 2: Metodología de investigación.
+         - Sección 3: Resultados y Análisis.
+         - Sección 4: Discusión.
+      5. Conclusión (Síntesis, Limitaciones, Futuras investigaciones).
+      6. Bibliografía (Estilo APA o apropiado).
       
-      Important : Chaque section doit être très développée pour montrer la substance du travail, mais rester synthétique pour tenir dans la génération.
+      Importante: Cada sección debe estar muy desarrollada para mostrar la sustancia del trabajo, pero permanecer sintética para caber en la generación.
     `;
   } else if (config.type === 'dissertation') {
     prompt = `
-      Rédige une dissertation complète.
-      Sujet/Citation : "${config.citation || config.topic}".
-      Consigne : "${config.instructions || "Traiter le sujet de manière dialectique ou analytique selon pertinence."}".
-      Longueur visée : Environ ${config.pageCount || 3} pages.
-      Structure : Introduction (Amorce, Problématique, Annonce plan), Développement (Thèse, Antithèse, Synthèse ou Thématique), Conclusion.
-      Inclus une estimation du nombre de pages et une recommandation.
+      Redacta un ensayo completo.
+      Tema/Cita: "${config.citation || config.topic}".
+      Instrucción: "${config.instructions || "Tratar el tema de manera dialéctica o analítica según sea pertinente."}".
+      Longitud deseada: Aproximadamente ${config.pageCount || 3} páginas.
+      Estructura: Introducción (Gancho, Problemática, Anuncio del plan), Desarrollo (Tesis, Antítesis, Síntesis o Temático), Conclusión.
+      Incluye una estimación del número de páginas y una recomendación.
     `;
   } else if (config.type === 'argumentation') {
     prompt = `
-      Rédige un texte argumentatif sur : "${config.topic}".
-      Consigne : "${config.instructions}".
-      Longueur : ${config.pageCount || 2} pages.
-      Structure : Introduction, Arguments Pour/Contre structurés, Conclusion.
-      Inclus une estimation du nombre de pages et une recommandation.
+      Redacta un texto argumentativo sobre: "${config.topic}".
+      Instrucción: "${config.instructions}".
+      Longitud: ${config.pageCount || 2} páginas.
+      Estructura: Introducción, Argumentos a favor/en contra estructurados, Conclusión.
+      Incluye una estimación del número de páginas y una recomendación.
     `;
   }
 
@@ -163,7 +163,7 @@ export const generateDocument = async (config: GenerationConfig, userName: strin
             properties: {
               title: { type: Type.STRING },
               subtitle: { type: Type.STRING },
-              countrySymbol: { type: Type.STRING, description: "Nom du symbole ou devise du pays" },
+              countrySymbol: { type: Type.STRING, description: "Nombre del símbolo o lema del país" },
               schoolName: { type: Type.STRING }
             }
           },
@@ -197,8 +197,8 @@ export const generateDocument = async (config: GenerationConfig, userName: strin
               items: { type: Type.OBJECT, properties: { question: {type: Type.STRING}, answer: {type: Type.STRING} }}
           },
           speech: { type: Type.STRING },
-          estimatedPages: { type: Type.NUMBER, description: "Estimation du nombre de pages du document" },
-          recommendation: { type: Type.STRING, description: "Conseil court pour l'élève" }
+          estimatedPages: { type: Type.NUMBER, description: "Estimación del número de páginas del documento" },
+          recommendation: { type: Type.STRING, description: "Consejo corto para el estudiante" }
         },
         required: ["introduction", "sections", "conclusion", "estimatedPages"]
       }
@@ -233,7 +233,7 @@ export const generateDocument = async (config: GenerationConfig, userName: strin
           createdAt: Date.now()
       };
     } else {
-      throw new Error("Réponse IA vide.");
+      throw new Error("Respuesta de la IA vacía.");
     }
   } catch (error) {
     handleGeminiError(error);

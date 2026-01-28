@@ -13,6 +13,7 @@ export interface User {
   generationsLimit: number; // 6 for freemium
   isAdmin: boolean;
   avatar?: string;
+  customApiKey?: string; // API Key personal del usuario
 }
 
 export interface UserSettings {
@@ -45,6 +46,7 @@ export interface GenerationConfig {
   // Shared
   instructions?: string;
   pageCount?: number;
+  userApiKey?: string; // Clave opcional pasada desde el contexto
 }
 
 export interface Section {
@@ -82,7 +84,6 @@ export interface ExposeContent {
 }
 
 export interface GeneratedContent {
-  // Fix: Added optional id property to GeneratedContent to prevent TS error in mockBackend when accessing docContent.id
   id?: string;
   type: DocType;
   title: string;

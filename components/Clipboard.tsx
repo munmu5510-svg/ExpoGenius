@@ -1,6 +1,7 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { User, DocType, GenerationConfig, GeneratedContent } from '../types';
-import { X, ChevronRight, Download, FileText, Share2, Menu, Paperclip, BookOpen, Printer, Maximize, Minimize } from 'lucide-react';
+import { X, ChevronRight, Download, FileText, Share2, Menu, Paperclip, BookOpen, Printer, Maximize, Minimize, FileCode } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
@@ -9,9 +10,11 @@ interface ClipboardProps {
   onBack: () => void;
   onGenerate: (config: GenerationConfig) => Promise<GeneratedContent | null>;
   initialDoc?: GeneratedContent | null;
+  // Added lang prop to fix the reported TypeScript error in App.tsx
+  lang: 'en' | 'fr' | 'es';
 }
 
-export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardProps) => {
+export const Clipboard = ({ user, onBack, onGenerate, initialDoc, lang }: ClipboardProps) => {
   const [docType, setDocType] = useState<DocType>('expose');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<GeneratedContent | null>(null);
@@ -24,7 +27,6 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
   // Form States
   const [topic, setTopic] = useState('');
   const [level, setLevel] = useState('');
-  // Exposé specific
   const [currency, setCurrency] = useState('XAF');
   const [bwPrice, setBwPrice] = useState(25);
   const [colorPrice, setColorPrice] = useState(100);
@@ -35,20 +37,17 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
   const [date, setDate] = useState('');
   const [objectives, setObjectives] = useState('');
   
-  // Image Upload States
   const [schoolLogo, setSchoolLogo] = useState<string | null>(null);
   const [countryEmblem, setCountryEmblem] = useState<string | null>(null);
   const schoolInputRef = useRef<HTMLInputElement>(null);
   const countryInputRef = useRef<HTMLInputElement>(null);
 
-  // Other
   const [citation, setCitation] = useState('');
   const [instructions, setInstructions] = useState('');
   const [pageCount, setPageCount] = useState(3);
 
   const reportRef = useRef<HTMLDivElement>(null);
 
-  // Load initial document if provided (view mode)
   useEffect(() => {
     if (initialDoc) {
       setResult(initialDoc);
@@ -56,38 +55,21 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
     }
   }, [initialDoc]);
 
-  // Handle Escape key for fullscreen
   useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') setIsFullScreen(false);
-    };
+    const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setIsFullScreen(false); };
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
   }, []);
 
-  // Mobile responsiveness initialization
   useEffect(() => {
     const handleLayout = () => {
         const width = window.innerWidth;
         if (width !== previousWidth.current) {
-            if (width < 768) {
-                setIsSidebarOpen(false);
-            } else {
-                setIsSidebarOpen(true);
-            }
+            setIsSidebarOpen(width >= 768);
             previousWidth.current = width;
         }
-
-        if (width < 768) {
-             const availableWidth = width - 32; 
-             const a4Width = 794; 
-             const newScale = Math.min(availableWidth / a4Width, 1);
-             setScale(newScale);
-        } else {
-             setScale(1);
-        }
+        setScale(width < 768 ? Math.min((width - 32) / 794, 1) : 1);
     };
-    
     handleLayout();
     window.addEventListener('resize', handleLayout);
     return () => window.removeEventListener('resize', handleLayout);
@@ -96,11 +78,7 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, setter: (val: string | null) => void) => {
       if (e.target.files && e.target.files[0]) {
           const reader = new FileReader();
-          reader.onload = (ev) => {
-              if (ev.target?.result) {
-                  setter(ev.target.result as string);
-              }
-          };
+          reader.onload = (ev) => setter(ev.target?.result as string);
           reader.readAsDataURL(e.target.files[0]);
       }
   };
@@ -108,11 +86,9 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
   const handleGenerateClick = async () => {
     setLoading(true);
     const config: GenerationConfig = {
-        type: docType,
-        topic,
-        level,
-        currency, bwPrice, colorPrice, budget, school, country, professor, date,
-        citation, instructions, pageCount, objectives
+        type: docType, topic, level, currency, bwPrice, colorPrice, budget, school, country, professor, date,
+        citation, instructions, pageCount, objectives,
+        userApiKey: user.customApiKey 
     };
     try {
         const doc = await onGenerate(config);
@@ -124,440 +100,273 @@ export const Clipboard = ({ user, onBack, onGenerate, initialDoc }: ClipboardPro
             setResult(doc);
             if (window.innerWidth < 768) setIsSidebarOpen(false);
         }
-    } catch (e) {
-        alert("Erreur de génération");
+    } catch (e: any) {
+        alert(e.message || "Error de generación");
     } finally {
         setLoading(false);
     }
   };
 
-  // Function to generate Dynamic Table of Contents based on structure
-  const getDynamicTOC = (content: GeneratedContent['content']) => {
-    const toc = [];
-    let page = 1; // Start content at page 1
-
-    toc.push({ title: "Introduction", page: page });
-    page++;
-
-    content.sections.forEach(s => {
-        toc.push({ title: s.heading, page: page });
-        page++;
-    });
-
-    toc.push({ title: "Conclusion", page: page });
-    page++;
-
-    if(content.bibliography?.length) {
-        toc.push({ title: "Bibliographie", page: page });
-    }
-    return toc;
-  };
-
   const downloadPDF = async () => {
       if (!reportRef.current || !result) return;
-      
-      const originalTitle = document.title;
-      document.title = `WordPoz-${result.title}`;
-
       try {
-          const clone = reportRef.current.cloneNode(true) as HTMLElement;
-          const container = document.createElement('div');
-          // Hide container but keep it rendered for canvas capture
-          container.style.position = 'fixed';
-          container.style.top = '-9999px';
-          container.style.left = '0';
-          container.style.zIndex = '-1';
-          container.style.width = '210mm'; 
-          container.appendChild(clone);
-          document.body.appendChild(container);
-
           const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
-          const pageWidth = 210;
-          const sections = clone.querySelectorAll('.pdf-section');
-          
+          const sections = reportRef.current.querySelectorAll('.pdf-section');
           for (let i = 0; i < sections.length; i++) {
               if (i > 0) pdf.addPage();
-              const element = sections[i] as HTMLElement;
-              // Force white background and text colors for PDF render
-              element.style.backgroundColor = 'white';
-              element.style.color = 'black';
-
-              const canvas = await html2canvas(element, { 
-                  scale: 3, // High quality scale
-                  useCORS: true,
-                  windowWidth: 794 // Approx A4 width in px at 96dpi
-              });
-              
+              const canvas = await html2canvas(sections[i] as HTMLElement, { scale: 2, useCORS: true });
               const imgData = canvas.toDataURL('image/jpeg', 0.95);
-              const imgHeight = (canvas.height * pageWidth) / canvas.width;
-              
-              pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, imgHeight);
+              pdf.addImage(imgData, 'JPEG', 0, 0, 210, (canvas.height * 210) / canvas.width);
           }
-
-          pdf.save(`WordPoz-${result.title || 'Document'}.pdf`);
-          document.body.removeChild(container);
-          
-      } catch (err) {
-          console.error("PDF Error", err);
-          alert("Erreur lors de la création du PDF.");
-      } finally {
-          document.title = originalTitle;
-      }
+          pdf.save(`WyRunner-${result.title}.pdf`);
+      } catch (err) { alert("Error al crear PDF."); }
   };
 
-  // Reusable Header/Footer for Content Pages
+  const downloadWord = () => {
+      if (!reportRef.current || !result) return;
+      
+      const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>" +
+                     "<head><meta charset='utf-8'><style>body { font-family: 'Times New Roman'; } .pdf-section { page-break-after: always; }</style></head><body>";
+      const footer = "</body></html>";
+      const content = reportRef.current.innerHTML;
+      
+      const cleanContent = content.replace(/class="[^"]*"/g, (match) => {
+          if (match.includes('pdf-section')) return 'class="pdf-section"';
+          return '';
+      });
+
+      const blob = new Blob(['\ufeff', header + cleanContent + footer], { type: 'application/msword' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `WyRunner-${result.title}.doc`;
+      link.click();
+      URL.revokeObjectURL(url);
+  };
+
   const PageHeader = ({ title, sub }: { title: string, sub?: string }) => (
       <div className="absolute top-0 left-0 w-full h-24 px-12 pt-8 flex justify-between items-end border-b border-gray-200">
-          <div className="text-xs text-gray-400 uppercase tracking-widest font-sans font-bold">{sub || "Document Académique"}</div>
+          <div className="text-xs text-gray-400 uppercase tracking-widest font-sans font-bold">{sub || "WyRunner Studio"}</div>
           <div className="text-sm font-bold text-gray-700 font-serif italic truncate max-w-[300px]">{title}</div>
       </div>
   );
 
   const PageFooter = ({ pageNum }: { pageNum?: number | string }) => (
       <div className="absolute bottom-0 left-0 w-full h-16 px-12 pb-6 flex justify-between items-center border-t border-gray-100">
-          <div className="text-[10px] text-gray-300 font-sans tracking-wide">Généré par WordPoz AI</div>
+          <div className="text-[10px] text-gray-300 font-sans tracking-wide">Generated by WyRunner AI</div>
           {pageNum && <div className="text-sm font-serif text-gray-600 font-bold">- {pageNum} -</div>}
       </div>
   );
 
   return (
     <div className="flex h-screen bg-gray-100 dark:bg-gray-900 overflow-hidden relative">
-      
-      {/* Mobile Header - Hidden in Full Screen */}
+      {/* Top Mobile Bar */}
       {!isFullScreen && (
         <div className="md:hidden absolute top-0 left-0 right-0 h-14 bg-white dark:bg-gray-800 border-b dark:border-gray-700 flex items-center justify-between px-4 z-30">
-            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2">
-                <Menu />
-            </button>
-            <span className="font-bold truncate max-w-[150px]">{result ? result.title : 'Clipboard'}</span>
-            <button onClick={onBack} className="p-2 bg-red-50 text-red-500 rounded-full"><X size={18} /></button>
+            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2"><Menu /></button>
+            <span className="font-bold truncate max-w-[150px]">{result ? result.title : 'WyRunner Studio'}</span>
+            <button onClick={onBack} className="p-2 text-red-500"><X size={18} /></button>
         </div>
       )}
 
-      {/* Sidebar Configuration - Hidden in Full Screen */}
+      {/* Configuration Sidebar */}
       {!isFullScreen && (
-        <aside className={`
-            absolute md:relative top-0 left-0 h-full w-full md:w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 
-            flex flex-col z-20 transition-transform duration-300 transform 
-            ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0 md:w-0 md:overflow-hidden'}
-            pt-14 md:pt-0 shadow-2xl md:shadow-none
-        `}>
+        <aside className={`absolute md:relative top-0 left-0 h-full w-full md:w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col z-20 transition-transform duration-300 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0 md:w-0 md:overflow-hidden'} pt-14 md:pt-0`}>
             <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center">
-                <h2 className="font-bold text-lg dark:text-white">Configuration</h2>
-                <button onClick={() => setIsSidebarOpen(false)} className="md:hidden p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
-                    <ChevronRight size={20} />
-                </button>
+                <h2 className="font-bold text-lg dark:text-white">Configuración</h2>
+                <button onClick={() => setIsSidebarOpen(false)} className="md:hidden p-1 rounded-full"><ChevronRight size={20} /></button>
             </div>
-
-            <div className="p-4 space-y-6 overflow-y-auto pb-20">
-                <div>
-                    <label className="text-xs font-bold uppercase text-gray-400 mb-2 block">Type de production</label>
-                    <div className="grid grid-cols-2 gap-2">
-                        <button onClick={() => setDocType('expose')} className={`px-3 py-2 rounded-md text-xs font-bold ${docType === 'expose' ? 'bg-purple-600 text-white' : 'bg-gray-100 dark:bg-gray-700'}`}>Exposé</button>
-                        <button onClick={() => setDocType('these')} className={`px-3 py-2 rounded-md text-xs font-bold ${docType === 'these' ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-700'}`}>Thèse</button>
-                        <button onClick={() => setDocType('dissertation')} className={`px-3 py-2 rounded-md text-xs font-bold ${docType === 'dissertation' ? 'bg-purple-600 text-white' : 'bg-gray-100 dark:bg-gray-700'}`}>Dissertation</button>
-                        <button onClick={() => setDocType('argumentation')} className={`px-3 py-2 rounded-md text-xs font-bold ${docType === 'argumentation' ? 'bg-purple-600 text-white' : 'bg-gray-100 dark:bg-gray-700'}`}>Argumentation</button>
-                    </div>
+            <div className="p-4 space-y-4 overflow-y-auto pb-20">
+                <div className="grid grid-cols-2 gap-2">
+                    {['expose', 'these', 'dissertation', 'argumentation'].map((t) => (
+                        <button 
+                          key={t} 
+                          onClick={() => setDocType(t as DocType)} 
+                          className={`px-2 py-2 rounded text-[10px] font-bold uppercase transition-colors ${docType === t ? 'bg-purple-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
+                        >
+                          {t}
+                        </button>
+                    ))}
                 </div>
 
-                {(docType === 'expose' || docType === 'these') && (
+                <div className="space-y-3">
+                  <input 
+                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
+                    placeholder={docType === 'dissertation' ? "Cita / Sujeto" : "Tema / Título"} 
+                    value={topic} 
+                    onChange={e => setTopic(e.target.value)} 
+                  />
+                  
+                  <textarea 
+                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm h-16" 
+                    placeholder={docType === 'expose' ? "Objetivos (ex: Convencer sobre ecología...)" : "Instrucciones o contexto..."} 
+                    value={docType === 'dissertation' ? instructions : objectives} 
+                    onChange={e => docType === 'dissertation' ? setInstructions(e.target.value) : setObjectives(e.target.value)} 
+                  />
+
+                  {(docType === 'expose' || docType === 'these') && (
                     <>
-                        <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder={docType === 'these' ? "Sujet de Thèse" : "Thème de l'exposé"} value={topic} onChange={e => setTopic(e.target.value)} />
-                        
-                        <textarea 
-                            className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 text-sm h-20" 
-                            placeholder="Objectifs de l'exposé (ex: Convaincre sur l'écologie, Présenter l'histoire...)" 
-                            value={objectives} 
-                            onChange={e => setObjectives(e.target.value)} 
-                        />
+                      <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder={docType === 'these' ? "Dominio (ex: Derecho...)" : "Nivel de estudio"} value={level} onChange={e => setLevel(e.target.value)} />
+                      
+                      <div className="grid grid-cols-2 gap-2">
+                          <div className="flex flex-col">
+                              <label className="text-[10px] text-gray-400">Presupuesto</label>
+                              <input className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" type="number" value={budget} onChange={e => setBudget(parseFloat(e.target.value))} />
+                          </div>
+                          <div className="flex flex-col">
+                              <label className="text-[10px] text-gray-400">Divisa</label>
+                              <select value={currency} onChange={e => setCurrency(e.target.value)} className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                  <option value="XAF">XAF</option>
+                                  <option value="EUR">EUR</option>
+                                  <option value="USD">USD</option>
+                              </select>
+                          </div>
+                      </div>
 
-                        <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder={docType === 'these' ? "Domaine (ex: Droit, Médecine...)" : "Niveau d'étude"} value={level} onChange={e => setLevel(e.target.value)} />
-                        
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold uppercase text-gray-400">Devise & Budget Impression</label>
-                            <select 
-                                value={currency} 
-                                onChange={e => setCurrency(e.target.value)}
-                                className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
-                            >
-                                <option value="XAF">FCFA (XAF)</option>
-                                <option value="EUR">Euro (€)</option>
-                                <option value="USD">Dollar ($)</option>
-                                <option value="CAD">Dollar (CAD)</option>
-                                <option value="GNF">Franc (GNF)</option>
-                            </select>
-                            <div className="grid grid-cols-2 gap-2">
-                                <div className="flex flex-col">
-                                    <label className="text-[10px] text-gray-400">Budget Total</label>
-                                    <input className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" type="number" value={budget} onChange={e => setBudget(parseFloat(e.target.value))} />
-                                </div>
-                                <div className="flex flex-col">
-                                    <label className="text-[10px] text-gray-400">Prix page N&B</label>
-                                    <input className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" type="number" value={bwPrice} onChange={e => setBwPrice(parseFloat(e.target.value))} />
-                                </div>
-                                <div className="flex flex-col col-span-2">
-                                    <label className="text-[10px] text-gray-400">Prix page Couleur</label>
-                                    <input className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" type="number" value={colorPrice} onChange={e => setColorPrice(parseFloat(e.target.value))} />
-                                </div>
-                            </div>
-                        </div>
+                      <div className="grid grid-cols-2 gap-2">
+                          <div className="flex flex-col">
+                              <label className="text-[10px] text-gray-400">Precio B/N</label>
+                              <input className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" type="number" value={bwPrice} onChange={e => setBwPrice(parseFloat(e.target.value))} />
+                          </div>
+                          <div className="flex flex-col">
+                              <label className="text-[10px] text-gray-400">Precio Color</label>
+                              <input className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" type="number" value={colorPrice} onChange={e => setColorPrice(parseFloat(e.target.value))} />
+                          </div>
+                      </div>
 
-                        {/* Inputs with Paperclip for Images */}
-                        <div className="relative">
-                            <input className="w-full p-2 pr-10 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder={docType === 'these' ? "Université / Institution" : "Établissement"} value={school} onChange={e => setSchool(e.target.value)} />
-                            <button onClick={() => schoolInputRef.current?.click()} className="absolute right-2 top-2 text-gray-400 hover:text-purple-600 bg-transparent p-1">
-                                {schoolLogo ? <span className="text-green-500 font-bold text-xs">IMG</span> : <Paperclip size={18} />}
-                            </button>
-                            <input type="file" ref={schoolInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, setSchoolLogo)} />
-                        </div>
+                      <div className="relative">
+                          <input className="w-full p-2 pr-10 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder={docType === 'these' ? "Universidad / Institución" : "Institución"} value={school} onChange={e => setSchool(e.target.value)} />
+                          <button onClick={() => schoolInputRef.current?.click()} className="absolute right-2 top-2 text-gray-400 hover:text-purple-600">
+                              {schoolLogo ? <span className="text-green-500 font-bold text-[10px]">IMG</span> : <Paperclip size={18} />}
+                          </button>
+                          <input type="file" ref={schoolInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, setSchoolLogo)} />
+                      </div>
 
-                        <div className="relative">
-                            <input className="w-full p-2 pr-10 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Pays" value={country} onChange={e => setCountry(e.target.value)} />
-                            <button onClick={() => countryInputRef.current?.click()} className="absolute right-2 top-2 text-gray-400 hover:text-purple-600 bg-transparent p-1">
-                                {countryEmblem ? <span className="text-green-500 font-bold text-xs">IMG</span> : <Paperclip size={18} />}
-                            </button>
-                            <input type="file" ref={countryInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, setCountryEmblem)} />
-                        </div>
+                      <div className="relative">
+                          <input className="w-full p-2 pr-10 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="País" value={country} onChange={e => setCountry(e.target.value)} />
+                          <button onClick={() => countryInputRef.current?.click()} className="absolute right-2 top-2 text-gray-400 hover:text-purple-600">
+                              {countryEmblem ? <span className="text-green-500 font-bold text-[10px]">IMG</span> : <Paperclip size={18} />}
+                          </button>
+                          <input type="file" ref={countryInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, setCountryEmblem)} />
+                      </div>
 
-                        <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder={docType === 'these' ? "Directeur de thèse" : "Professeur"} value={professor} onChange={e => setProfessor(e.target.value)} />
-                        <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Date (Ville/Mois/Année)" value={date} onChange={e => setDate(e.target.value)} />
-                        
-                        {docType === 'these' && (
-                             <textarea className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Hypothèse ou Problématique spécifique..." value={instructions} onChange={e => setInstructions(e.target.value)} />
-                        )}
+                      <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder={docType === 'these' ? "Director de tesis" : "Profesor"} value={professor} onChange={e => setProfessor(e.target.value)} />
+                      <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Fecha (D/M/A)" value={date} onChange={e => setDate(e.target.value)} />
                     </>
-                )}
+                  )}
 
-                {(docType === 'dissertation' || docType === 'argumentation') && (
+                  {(docType === 'dissertation' || docType === 'argumentation') && (
                     <>
-                        <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder={docType === 'dissertation' ? "Citation / Sujet" : "Sujet"} value={topic} onChange={e => setTopic(e.target.value)} />
-                        <textarea className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Consigne spécifique..." value={instructions} onChange={e => setInstructions(e.target.value)} />
-                        <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" type="number" placeholder="Nombre de pages" value={pageCount} onChange={e => setPageCount(parseInt(e.target.value))} />
+                      <div className="flex flex-col">
+                          <label className="text-[10px] text-gray-400">Páginas deseadas</label>
+                          <input className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" type="number" value={pageCount} onChange={e => setPageCount(parseInt(e.target.value))} />
+                      </div>
                     </>
-                )}
+                  )}
+                </div>
 
                 <button 
-                    onClick={handleGenerateClick}
-                    disabled={loading}
-                    className="w-full py-3 bg-purple-600 text-white font-bold rounded-lg shadow hover:bg-purple-700 disabled:opacity-50 flex justify-center items-center gap-2"
+                  onClick={handleGenerateClick} 
+                  disabled={loading || !topic} 
+                  className="w-full py-3 bg-purple-600 text-white font-bold rounded-lg shadow-lg hover:bg-purple-700 transition-all disabled:opacity-50 mt-4"
                 >
-                    {loading ? <span className="animate-spin">⌛</span> : "Générer"}
+                  {loading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
+                      Generando...
+                    </span>
+                  ) : "Generar Documento"}
                 </button>
-
-                {result && (
-                    <button 
-                        onClick={downloadPDF}
-                        className="w-full py-3 bg-blue-600 text-white font-bold rounded-lg shadow hover:bg-blue-700 flex justify-center items-center gap-2 mt-2"
-                    >
-                        <Download size={20} /> Télécharger PDF
-                    </button>
-                )}
             </div>
         </aside>
       )}
 
-      {/* Main View / Preview */}
-      <main ref={previewContainerRef} className={`flex-1 overflow-y-auto flex justify-center bg-gray-100 dark:bg-gray-900 ${isFullScreen ? 'fixed inset-0 z-50 p-0' : 'pt-14 md:pt-4 p-4 md:p-8'}`}>
-        
-        {/* Floating Exit Button for Full Screen */}
-        {isFullScreen && (
-             <button 
-                onClick={() => setIsFullScreen(false)}
-                className="fixed top-6 right-6 z-[60] p-3 bg-black/50 text-white backdrop-blur-md rounded-full shadow-xl hover:bg-black/70 transition-all animate-fade-in"
-                title="Quitter le plein écran"
-            >
-                <Minimize size={24} />
-            </button>
-        )}
+      {/* FIXED CLOSE BUTTON - Ensuring visibility for desktop users */}
+      {!isFullScreen && (
+          <button 
+              onClick={onBack}
+              className="fixed top-4 right-4 z-[100] flex items-center justify-center p-3 bg-white dark:bg-gray-800 text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full shadow-2xl border border-gray-100 dark:border-gray-700 transition-all transform hover:scale-110"
+              title="Cerrar WyRunner Studio"
+          >
+              <X size={24} />
+          </button>
+      )}
 
-        {!isFullScreen && (
-            <button 
-                onClick={onBack}
-                className="absolute top-4 right-8 hidden md:flex items-center justify-center p-2 bg-white dark:bg-gray-800 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-full shadow-sm z-50 transition-colors"
-                title="Fermer Clipboard"
-            >
-                <X size={24} />
-            </button>
-        )}
-
+      <main className={`flex-1 overflow-y-auto flex justify-center bg-gray-100 dark:bg-gray-900 ${isFullScreen ? 'fixed inset-0 z-50 p-0' : 'pt-16 md:pt-4 p-4 md:p-8'}`}>
         {!result ? (
-            <div className="flex flex-col items-center justify-center text-gray-400">
-                <FileText size={64} className="mb-4 opacity-50" />
-                <p>Configurez et générez votre document.</p>
-                <button onClick={() => setIsSidebarOpen(true)} className="md:hidden mt-4 text-purple-600 underline">Ouvrir la configuration</button>
+            <div className="flex flex-col items-center justify-center text-gray-400 text-center max-w-sm animate-fade-in py-20">
+                <FileText size={80} className="mb-6 opacity-20" />
+                <h3 className="text-xl font-bold mb-2">Editor Académico</h3>
+                <p className="text-sm opacity-60 px-4">Configura los parámetros en la barra lateral y genera tu producción académica optimizada.</p>
+                <button onClick={() => setIsSidebarOpen(true)} className="md:hidden mt-6 px-6 py-2 bg-purple-600 text-white rounded-full font-bold">Abrir Configuración</button>
             </div>
         ) : (
-            <div className={`w-full flex justify-center items-start ${isFullScreen ? 'min-h-screen' : ''}`}>
-                 {/* This wrapper handles the A4 scaling on mobile */}
-                 <div style={{ transform: `scale(${scale})`, transformOrigin: 'top center', width: '210mm' }} className="transition-transform duration-200">
-                     
-                     {/* Toolbar - Hidden in full screen for immersion */}
+            <div className="w-full flex justify-center items-start">
+                 <div style={{ transform: `scale(${scale})`, transformOrigin: 'top center', width: '210mm' }} className="transition-transform duration-300">
                      {!isFullScreen && (
-                         <div className="flex justify-between items-center mb-4 no-print bg-gray-100 dark:bg-gray-900 py-2">
-                             <h2 className="font-bold text-xl dark:text-white truncate max-w-[200px]">{result.title}</h2>
+                         <div className="flex justify-between items-center mb-6 bg-white/50 dark:bg-gray-800/50 backdrop-blur-md p-4 rounded-xl border dark:border-gray-700 shadow-sm">
+                             <h2 className="font-bold text-lg dark:text-white truncate max-w-[200px]">{result.title}</h2>
                              <div className="flex gap-2">
-                                <button onClick={() => setIsFullScreen(true)} className="flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded hover:bg-gray-300 dark:hover:bg-gray-600 text-sm shadow-md transition-colors">
-                                    <Maximize size={18} /> <span className="hidden md:inline">Plein écran</span>
-                                </button>
-                                <button onClick={downloadPDF} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm shadow-md">
-                                    <Download size={18} /> <span className="hidden md:inline">PDF</span>
-                                </button>
-                                {/* Fix: Corrected the plan type check from 'pro_plus' to 'pro_authority' to match the defined PlanType. */}
-                                {user.plan === 'pro_authority' && (
-                                     <button className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 text-sm shadow-md">
-                                        <Share2 size={18} /> <span className="hidden md:inline">Pack Pro+</span>
-                                    </button>
-                                )}
+                                <button onClick={() => setIsFullScreen(true)} className="p-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 transition-colors" title="Plein écran"><Maximize size={20} /></button>
+                                <button onClick={downloadPDF} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold shadow-md hover:bg-blue-700 transition-all"><Download size={18} /> PDF</button>
+                                <button onClick={downloadWord} className="flex items-center gap-2 px-4 py-2 bg-indigo-700 text-white rounded-lg text-sm font-bold shadow-md hover:bg-indigo-800 transition-all"><FileCode size={18} /> Word</button>
                              </div>
                          </div>
                      )}
 
-                     {/* Document Render Container */}
+                     {/* Document Preview Content */}
                      <div ref={reportRef} className="bg-white shadow-2xl text-black">
-                         
-                         {/* 1. Cover Page */}
                          {result.content.cover && (
                              <div className="pdf-section w-[210mm] min-h-[297mm] p-12 bg-white relative flex flex-col justify-between">
-                                 {/* Border - Fade In */}
-                                 <div className="absolute inset-6 border-[3px] border-double border-gray-900 pointer-events-none animate-fade-in" style={{ animationDelay: '0s' }}></div>
-                                 
+                                 <div className="absolute inset-6 border-[3px] border-double border-gray-900 pointer-events-none"></div>
                                  <div className="flex justify-between items-start mt-8 mx-8 h-32 relative z-10">
-                                    <div className="text-left w-1/3 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-                                        {result.content.cover.countrySymbol?.startsWith('data:image') ? (
-                                            <img src={result.content.cover.countrySymbol} alt="Country" className="max-h-24 object-contain mb-2" />
-                                        ) : (
-                                            <div className="font-bold uppercase tracking-widest text-sm text-gray-600">{result.content.cover.countrySymbol || "RÉPUBLIQUE"}</div>
-                                        )}
-                                    </div>
-                                    <div className="text-right w-1/3 flex flex-col items-end animate-fade-in" style={{ animationDelay: '0.2s' }}>
-                                        {result.content.cover.schoolLogo ? (
-                                             <img src={result.content.cover.schoolLogo} alt="School" className="max-h-24 object-contain mb-2" />
-                                        ) : null}
-                                        <div className="font-bold uppercase tracking-widest text-sm text-gray-600 mt-2">{result.content.cover.schoolName || "ÉTABLISSEMENT"}</div>
+                                    <div className="text-left w-1/3">{result.content.cover.countrySymbol?.startsWith('data:image') ? <img src={result.content.cover.countrySymbol} className="max-h-24 object-contain" /> : <div className="font-bold uppercase text-xs">{result.content.cover.countrySymbol}</div>}</div>
+                                    <div className="text-right w-1/3 flex flex-col items-end">
+                                        {result.content.cover.schoolLogo && <img src={result.content.cover.schoolLogo} className="max-h-24 object-contain" />}
+                                        <div className="font-bold uppercase text-xs mt-2">{result.content.cover.schoolName}</div>
                                     </div>
                                 </div>
-                                
                                 <div className="flex-1 flex flex-col justify-center items-center text-center px-16 relative z-10">
-                                    {result.content.cover.educationLevel && (
-                                        <div className="mb-8 font-serif italic text-xl text-gray-700 border-b border-gray-400 pb-2 px-6 animate-fade-in" style={{ animationDelay: '0.4s' }}>
-                                            {result.content.cover.educationLevel}
-                                        </div>
-                                    )}
-                                    <h1 className="text-5xl font-serif font-black mb-6 leading-tight uppercase tracking-tight text-gray-900 animate-fade-in" style={{ animationDelay: '0.6s' }}>
-                                        {result.content.cover.title}
-                                    </h1>
-                                    {result.content.cover.subtitle && (
-                                        <p className="text-2xl font-serif italic text-gray-600 mb-8 max-w-lg animate-fade-in" style={{ animationDelay: '0.8s' }}>
-                                            {result.content.cover.subtitle}
-                                        </p>
-                                    )}
+                                    <div className="mb-4 font-serif italic text-lg border-b pb-1 px-4">{result.content.cover.educationLevel}</div>
+                                    <h1 className="text-4xl font-serif font-black mb-4 uppercase leading-tight">{result.content.cover.title}</h1>
+                                    {result.content.cover.subtitle && <p className="text-xl font-serif italic text-gray-600">{result.content.cover.subtitle}</p>}
                                 </div>
-
-                                <div className="grid grid-cols-2 gap-8 text-left mb-16 mx-16 relative z-10 animate-fade-in" style={{ animationDelay: '1s' }}>
-                                    <div className="pl-4 border-l-4 border-gray-900">
-                                        <p className="font-sans font-bold uppercase text-[10px] text-gray-500 tracking-wider mb-1">Présenté par</p>
-                                        <p className="text-xl font-serif font-bold text-gray-900">{result.content.cover.studentName}</p>
-                                    </div>
-                                    <div className="text-right pr-4 border-r-4 border-gray-900">
-                                        <p className="font-sans font-bold uppercase text-[10px] text-gray-500 tracking-wider mb-1">Sous la direction de</p>
-                                        <p className="text-xl font-serif font-bold text-gray-900">{result.content.cover.professorName}</p>
-                                    </div>
+                                <div className="grid grid-cols-2 gap-8 text-left mb-16 mx-16 relative z-10">
+                                    <div className="pl-4 border-l-4 border-gray-900"><p className="text-[8px] uppercase font-bold text-gray-500">Presentado por</p><p className="font-bold">{result.content.cover.studentName}</p></div>
+                                    <div className="text-right pr-4 border-r-4 border-gray-900"><p className="text-[8px] uppercase font-bold text-gray-500">Director</p><p className="font-bold">{result.content.cover.professorName}</p></div>
                                 </div>
-                                
-                                <div className="text-center pb-8 font-serif italic text-gray-500 animate-fade-in" style={{ animationDelay: '1.2s' }}>
-                                    {result.content.cover.date || new Date().toLocaleDateString()}
-                                </div>
+                                <div className="text-center pb-8 font-serif italic text-gray-500">{result.content.cover.date}</div>
                              </div>
                          )}
-
-                         {/* 2. Dynamic Table of Contents */}
                          <div className="pdf-section w-[210mm] min-h-[297mm] p-12 bg-white relative">
-                             <PageHeader title={result.title} sub="Sommaire" />
-                             <div className="mt-20 px-8">
-                                <h2 className="text-3xl font-serif font-bold mb-12 text-center uppercase tracking-widest border-b-2 border-gray-900 pb-4">Sommaire</h2>
-                                <div className="space-y-4">
-                                    {getDynamicTOC(result.content).map((item, i) => (
-                                        <div key={i} className="flex items-baseline w-full">
-                                            <span className="font-serif text-lg font-bold text-gray-800 bg-white pr-2 z-10">{item.title}</span>
-                                            <div className="flex-1 border-b-2 border-dotted border-gray-400 mx-2 mb-1"></div>
-                                            <span className="font-serif text-lg font-bold text-gray-900 bg-white pl-2 z-10">{item.page}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                             </div>
-                             <PageFooter />
+                             <PageHeader title={result.title} sub="Índice" /><div className="mt-20 px-8"><h2 className="text-2xl font-serif font-bold mb-8 text-center uppercase border-b pb-2">Índice</h2>
+                             <div className="space-y-3">{result.content.toc?.map((item, i) => (<div key={i} className="flex justify-between items-baseline"><span>{item.title}</span><div className="flex-1 border-b border-dotted mx-2"></div><span>{item.page}</span></div>))}</div></div><PageFooter />
                          </div>
-
-                         {/* 3. Introduction */}
                          <div className="pdf-section w-[210mm] min-h-[297mm] p-12 bg-white relative">
-                             <PageHeader title={result.title} sub="Introduction" />
-                             <div className="mt-20 px-8">
-                                <h2 className="text-2xl font-sans font-bold mb-6 text-gray-900 uppercase tracking-wide">Introduction</h2>
-                                <p className="whitespace-pre-wrap text-justify leading-loose text-lg font-serif text-gray-800">
-                                    {result.content.introduction}
-                                </p>
-                             </div>
-                             <PageFooter pageNum={1} />
+                             <PageHeader title={result.title} sub="Introducción" /><div className="mt-20 px-8 text-justify leading-relaxed text-lg font-serif">{result.content.introduction}</div><PageFooter pageNum={1} />
                          </div>
-
-                         {/* 4. Sections */}
                          {result.content.sections.map((sec, i) => (
                              <div key={i} className="pdf-section w-[210mm] min-h-[297mm] p-12 bg-white relative">
-                                 <PageHeader title={result.title} sub={`Partie ${i + 1}`} />
-                                 <div className="mt-20 px-8">
-                                     <div className="flex items-baseline gap-4 mb-8 border-b border-gray-200 pb-4">
-                                         <span className="text-5xl font-sans font-black text-gray-200">{i + 1}</span>
-                                         <h3 className="text-2xl font-serif font-bold text-gray-900 uppercase">{sec.heading}</h3>
-                                     </div>
-                                     
-                                     <p className="whitespace-pre-wrap text-justify leading-loose text-lg font-serif text-gray-800 mb-8">
-                                         {sec.content}
-                                     </p>
-                                     
-                                     {sec.visualSuggestion && (
-                                         <div className="mx-auto w-3/4 p-6 bg-gray-50 border border-gray-200 rounded text-center my-8 break-inside-avoid">
-                                             <div className="flex justify-center mb-2 text-gray-400"><BookOpen size={24} /></div>
-                                             <p className="text-xs font-bold uppercase text-gray-400 mb-1">Suggestion d'illustration</p>
-                                             <p className="text-sm italic text-gray-600">"{sec.visualSuggestion}"</p>
-                                         </div>
-                                     )}
-                                 </div>
-                                 <PageFooter pageNum={i + 2} />
+                                 <PageHeader title={result.title} sub={`Parte ${i+1}`} /><div className="mt-20 px-8"><h3 className="text-2xl font-serif font-bold mb-4 uppercase border-b border-gray-100 pb-2">{sec.heading}</h3><p className="text-justify leading-relaxed text-lg font-serif">{sec.content}</p></div><PageFooter pageNum={i+2} />
                              </div>
                          ))}
-
-                         {/* 5. Conclusion */}
                          <div className="pdf-section w-[210mm] min-h-[297mm] p-12 bg-white relative">
-                             <PageHeader title={result.title} sub="Conclusion" />
-                             <div className="mt-20 px-8">
-                                 <h2 className="text-2xl font-sans font-bold mb-6 text-gray-900 uppercase tracking-wide">Conclusion</h2>
-                                 <p className="whitespace-pre-wrap text-justify leading-loose text-lg font-serif text-gray-800">
-                                     {result.content.conclusion}
-                                 </p>
-                             </div>
-                             <PageFooter pageNum={result.content.sections.length + 2} />
+                             <PageHeader title={result.title} sub="Conclusión" /><div className="mt-20 px-8 text-justify leading-relaxed text-lg font-serif">{result.content.conclusion}</div><PageFooter pageNum={result.content.sections.length + 2} />
                          </div>
-                         
-                         {/* 6. Bibliography */}
-                         {result.content.bibliography && (
-                             <div className="pdf-section w-[210mm] min-h-[297mm] p-12 bg-white relative">
-                                 <PageHeader title={result.title} sub="Références" />
-                                 <div className="mt-20 px-8">
-                                     <h2 className="text-2xl font-sans font-bold mb-8 text-gray-900 uppercase tracking-wide border-b-2 border-black inline-block pb-1">Bibliographie</h2>
-                                     <ul className="list-none space-y-4 pl-0">
-                                         {result.content.bibliography.map((b, i) => (
-                                             <li key={i} className="text-lg font-serif text-gray-700 pl-4 border-l-4 border-gray-200 py-1">
-                                                 {b}
-                                             </li>
-                                         ))}
-                                     </ul>
-                                 </div>
-                                 <PageFooter />
-                             </div>
-                         )}
                      </div>
                  </div>
             </div>
+        )}
+        
+        {/* Floating Close Button for Full Screen */}
+        {isFullScreen && (
+             <button 
+                onClick={() => setIsFullScreen(false)}
+                className="fixed top-6 right-6 z-[60] p-4 bg-black/60 text-white backdrop-blur-md rounded-full shadow-2xl hover:bg-black/80 transition-all border border-white/20"
+                title="Quitter le plein écran"
+            >
+                <Minimize size={28} />
+            </button>
         )}
       </main>
     </div>

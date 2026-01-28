@@ -1,8 +1,10 @@
+
 import React, { useState } from 'react';
 import { backend } from '../services/mockBackend';
 import { User } from '../types';
 
-export const Auth = ({ onLogin }: { onLogin: (user: User) => void }) => {
+// Added lang to the props type definition to resolve assignment error in App.tsx
+export const Auth = ({ onLogin, lang }: { onLogin: (user: User) => void, lang: 'en' | 'fr' | 'es' }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');

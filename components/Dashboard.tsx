@@ -1,7 +1,9 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { User, ViewState, GeneratedContent, Notification } from '../types';
 import { Sparkles, Bell, User as UserIcon, LogOut, Sun, Moon, Search, Plus, List, Trash2, Edit2, Share2, MoreVertical, X, CheckSquare, Loader, Inbox } from 'lucide-react';
 import { backend } from '../services/mockBackend';
+import { translations } from '../locales';
 
 interface DashboardProps {
   user: User;
@@ -10,11 +12,13 @@ interface DashboardProps {
   onLogout: () => void;
   theme: 'light' | 'dark';
   toggleTheme: () => void;
+  lang: 'en' | 'fr' | 'es';
 }
 
 type SelectionMode = 'none' | 'delete' | 'edit' | 'template';
 
-export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, toggleTheme }: DashboardProps) => {
+export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, toggleTheme, lang }: DashboardProps) => {
+  const t = translations[lang].dashboard;
   const [docs, setDocs] = useState<GeneratedContent[]>([]);
   const [isLoadingDocs, setIsLoadingDocs] = useState(true);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -25,11 +29,9 @@ export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, togg
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [actionLoading, setActionLoading] = useState(false);
 
-  // Refs for click outside
   const notifRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Load Docs on Mount
   useEffect(() => {
       const loadData = async () => {
           setIsLoadingDocs(true);
@@ -45,7 +47,6 @@ export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, togg
       };
       loadData();
       
-      // Periodic check for notifications
       const interval = setInterval(() => {
            setNotifications(backend.getNotifications());
       }, 5000);
@@ -83,7 +84,6 @@ export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, togg
       if (selectedIds.includes(id)) {
           setSelectedIds(selectedIds.filter(i => i !== id));
       } else {
-          // If edit mode, only allow 1 selection
           if (selectionMode === 'edit') {
               setSelectedIds([id]);
           } else {
@@ -98,16 +98,16 @@ export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, togg
 
       try {
         if (selectionMode === 'delete') {
-            if (confirm(`¿Eliminar ${selectedIds.length} documento(s)?`)) {
+            if (confirm(`Delete ${selectedIds.length} document(s)?`)) {
                 await backend.deleteDocuments(selectedIds);
-                setDocs(await backend.getUserDocuments(user.id)); // Reload
+                setDocs(await backend.getUserDocuments(user.id));
                 setSelectionMode('none');
                 setSelectedIds([]);
             }
         } else if (selectionMode === 'edit') {
             const doc = docs.find((d: any) => (d.id || d.createdAt.toString()) === selectedIds[0]);
             if (doc) {
-                const newTitle = prompt("Nuevo título:", doc.title);
+                const newTitle = prompt("New title:", doc.title);
                 if (newTitle) {
                     await backend.updateDocumentTitle(selectedIds[0], newTitle);
                     setDocs(await backend.getUserDocuments(user.id));
@@ -116,13 +116,12 @@ export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, togg
                 setSelectedIds([]);
             }
         } else if (selectionMode === 'template') {
-            // Mock Share
-            alert(`${selectedIds.length} documento(s) compartido(s) como plantilla(s)!`);
+            alert(`${selectedIds.length} document(s) shared!`);
             setSelectionMode('none');
             setSelectedIds([]);
         }
       } catch (e) {
-          alert("Error durante la acción");
+          alert("Error during action");
       } finally {
           setActionLoading(false);
       }
@@ -130,7 +129,6 @@ export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, togg
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white transition-colors relative">
-      {/* Top Bar */}
       <header className="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-40 px-4 py-3 flex justify-between items-center">
         <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full wos-gradient flex items-center justify-center text-white font-serif font-bold">W</div>
@@ -146,21 +144,24 @@ export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, togg
                 {theme === 'light' ? <Sun size={20} /> : <Moon size={20} />}
             </button>
             
-            {/* Notifications */}
             <div className="relative" ref={notifRef}>
                 <button 
                     onClick={() => setShowNotifPanel(!showNotifPanel)}
                     className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full relative"
                 >
                     <Bell size={20} className="text-gray-600 dark:text-gray-300" />
-                    {unreadCount > 0 && <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-800"></span>}
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 border-2 border-white dark:border-gray-800 shadow-sm">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </span>
+                    )}
                 </button>
 
                 {showNotifPanel && (
                     <div className="absolute top-full right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border dark:border-gray-700 z-50 overflow-hidden animate-fade-in origin-top-right">
                         <div className="p-3 border-b dark:border-gray-700 font-bold flex justify-between items-center">
-                            <span>Notificaciones</span>
-                            <span className="text-xs text-gray-400">{unreadCount} sin leer</span>
+                            <span>{t.notifications}</span>
+                            <span className="text-xs text-gray-400">{unreadCount} {t.unread}</span>
                         </div>
                         <div className="max-h-80 overflow-y-auto">
                             {notifications.length === 0 ? (
@@ -194,21 +195,18 @@ export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, togg
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="p-4 md:p-8 max-w-7xl mx-auto pb-24">
-        {/* Actions Bar */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
             <div className="relative w-full md:w-96">
                 <Search className="absolute left-3 top-3 text-gray-400" size={18} />
                 <input 
                     type="text" 
-                    placeholder="Buscar un documento..." 
+                    placeholder={t.searchPlaceholder}
                     className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 outline-none focus:ring-2 focus:ring-purple-500"
                 />
             </div>
             
             <div className="flex gap-2 w-full md:w-auto relative justify-end">
-                {/* Menu Action Button */}
                 <div className="relative" ref={menuRef}>
                     <button 
                         onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -219,13 +217,13 @@ export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, togg
                     {isMenuOpen && (
                         <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-xl border dark:border-gray-700 z-50 overflow-hidden animate-fade-in origin-top-right">
                             <button onClick={() => handleAction('delete')} className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 text-red-500">
-                                <Trash2 size={16} /> Eliminar
+                                <Trash2 size={16} /> {t.delete}
                             </button>
                             <button onClick={() => handleAction('edit')} className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2">
-                                <Edit2 size={16} /> Renombrar
+                                <Edit2 size={16} /> {t.rename}
                             </button>
                             <button onClick={() => handleAction('template')} className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 text-blue-500">
-                                <Share2 size={16} /> Enviar como Plantilla
+                                <Share2 size={16} /> {t.template}
                             </button>
                         </div>
                     )}
@@ -236,17 +234,16 @@ export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, togg
                     className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 wos-gradient text-white rounded-lg font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all whitespace-nowrap"
                 >
                     <Plus size={20} />
-                    Nuevo
+                    {t.new}
                 </button>
             </div>
         </div>
 
-        {/* Selection Mode Banner */}
         {selectionMode !== 'none' && (
             <div className="mb-6 p-4 bg-purple-100 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-xl flex justify-between items-center animate-pulse">
                 <div className="flex items-center gap-2 font-bold text-purple-800 dark:text-purple-200 text-sm md:text-base">
                     <CheckSquare size={20} />
-                    {selectionMode === 'delete' ? 'Seleccionar para Eliminar' : selectionMode === 'edit' ? 'Seleccionar para Renombrar' : 'Seleccionar para Plantilla'}
+                    {selectionMode === 'delete' ? t.delete : selectionMode === 'edit' ? t.rename : t.template}
                 </div>
                 <div className="flex gap-2">
                     <button onClick={() => setSelectionMode('none')} className="p-2 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full"><X size={20} /></button>
@@ -254,7 +251,6 @@ export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, togg
             </div>
         )}
 
-        {/* Grid */}
         {isLoadingDocs ? (
              <div className="flex justify-center items-center py-20">
                  <Loader className="animate-spin text-purple-600" size={40} />
@@ -264,15 +260,14 @@ export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, togg
                 <div className="mx-auto w-20 h-20 bg-gray-200 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
                     <List size={32} />
                 </div>
-                <p>Ningún documento por ahora.</p>
-                <p className="text-sm">Haz clic en Nuevo para empezar.</p>
+                <p>{t.noDocs}</p>
+                <p className="text-sm">{t.clickNew}</p>
             </div>
         ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {docs.map((doc: any, i: number) => {
                     const docId = doc.id || doc.createdAt.toString();
                     const isSelected = selectedIds.includes(docId);
-
                     return (
                         <div 
                             key={i} 
@@ -293,7 +288,6 @@ export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, togg
                                     {isSelected && <CheckSquare size={16} />}
                                 </div>
                             )}
-
                             <div className="flex justify-between items-start mb-4">
                                 <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${
                                     doc.type === 'expose' ? 'bg-blue-100 text-blue-600' : 
@@ -315,7 +309,6 @@ export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, togg
             </div>
         )}
 
-        {/* Action Confirm FAB */}
         {selectionMode !== 'none' && selectedIds.length > 0 && (
             <div className="fixed bottom-24 right-6 z-40 animate-bounce">
                 <button 
@@ -324,13 +317,12 @@ export const Dashboard = ({ user, onNavigate, onSelectDoc, onLogout, theme, togg
                     className="px-6 py-3 bg-gray-900 dark:bg-white text-white dark:text-black rounded-full shadow-2xl font-bold flex items-center gap-2"
                 >
                     {actionLoading ? <Loader className="animate-spin" size={18} /> : (selectionMode === 'delete' ? <Trash2 size={18} /> : selectionMode === 'edit' ? <Edit2 size={18} /> : <Share2 size={18} />)}
-                    Confirmar ({selectedIds.length})
+                    {t.confirm} ({selectedIds.length})
                 </button>
             </div>
         )}
       </main>
 
-      {/* AI Assistant FAB - Z-Index augmenté et position mobile ajustée pour être toujours accessible */}
       <div className="fixed bottom-20 md:bottom-6 right-6 z-[100]">
              <button 
                 onClick={() => onNavigate('wos_chat')}

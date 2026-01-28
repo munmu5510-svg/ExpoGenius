@@ -1,9 +1,11 @@
+
 import React, { useState } from 'react';
 import { User } from '../types';
 import { backend } from '../services/mockBackend';
 import { ArrowLeft, Database, Users, DollarSign, Bell, Shield, CheckCircle } from 'lucide-react';
 
-export const AdminPanel = ({ user, onBack }: { user: User, onBack: () => void }) => {
+// Added lang to the props definition to resolve the assignment error in App.tsx
+export const AdminPanel = ({ user, onBack, lang }: { user: User, onBack: () => void, lang: 'en' | 'fr' | 'es' }) => {
   if (!user.isAdmin) return <div className="p-10 text-center">Acceso denegado</div>;
 
   const stats = backend.getStats();

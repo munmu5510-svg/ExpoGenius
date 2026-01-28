@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { ViewState, User, DocType, GeneratedContent, GenerationConfig } from './types';
 import { backend } from './services/mockBackend';
@@ -17,84 +18,47 @@ export default function App() {
   const [view, setView] = useState<ViewState>('splash');
   const [user, setUser] = useState<User | null>(null);
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
-  const [lang, setLang] = useState('en');
   const [selectedDoc, setSelectedDoc] = useState<GeneratedContent | null>(null);
+  const [lang, setLang] = useState<'en' | 'fr' | 'es'>('es');
 
-  // Load Initial State and Auth Listener
   useEffect(() => {
-    // Language
-    const browserLang = navigator.language.startsWith('fr') ? 'fr' : 'en';
-    setLang(browserLang);
-
-    // Theme - Force Dark by default
     document.body.classList.add('dark');
-
-    // Initialize Auth Listener
-    // This handles both Firebase Auth changes AND initial local storage checks
     backend.onAuthStateChange((currentUser) => {
         if (currentUser) {
             setUser(currentUser);
-            // Only switch to dashboard if we are currently in splash or landing or auth
-            // This prevents redirecting if user is already deep in the app
             setView(prev => (prev === 'splash' || prev === 'landing' || prev === 'auth') ? 'dashboard' : prev);
         } else {
             setUser(null);
-            // If we were expecting a user, go to landing, but give splash a moment
             setView(prev => prev === 'splash' ? 'landing' : 'auth');
         }
     });
-
-    // Fallback for splash if auth is slow or empty
-    const timer = setTimeout(() => {
-        if (!user && view === 'splash') {
-            setView('landing');
-        }
-    }, 2500);
-
+    const timer = setTimeout(() => { if (!user && view === 'splash') setView('landing'); }, 2500);
     return () => clearTimeout(timer);
-  }, []); // Run once
+  }, []);
 
   const toggleTheme = () => {
-      if (theme === 'light') {
-          setTheme('dark');
-          document.body.classList.add('dark');
-      } else {
-          setTheme('light');
-          document.body.classList.remove('dark');
-      }
+      if (theme === 'light') { setTheme('dark'); document.body.classList.add('dark'); }
+      else { setTheme('light'); document.body.classList.remove('dark'); }
   };
 
-  const handleDocSelect = (doc: GeneratedContent) => {
-      setSelectedDoc(doc);
-      setView('clipboard');
-  };
+  const handleDocSelect = (doc: GeneratedContent) => { setSelectedDoc(doc); setView('clipboard'); };
 
-  // View Routing
   const renderView = () => {
     switch(view) {
         case 'splash': return <Splash />;
-        case 'landing': return <Landing onGetStarted={() => setView('auth')} />;
-        case 'auth': return <Auth onLogin={(u) => { setUser(u); setView('dashboard'); }} />;
+        case 'landing': return <Landing lang={lang} onSetLang={setLang} onGetStarted={() => setView('auth')} />;
+        case 'auth': return <Auth lang={lang} onLogin={(u) => { setUser(u); setView('dashboard'); }} />;
         case 'dashboard': 
-            return <Dashboard 
-                user={user!} 
-                onNavigate={setView}
-                onSelectDoc={handleDocSelect}
-                onLogout={async () => { await backend.logout(); setUser(null); setView('auth'); }}
-                theme={theme}
-                toggleTheme={toggleTheme}
-            />;
+            return <Dashboard lang={lang} user={user!} onNavigate={setView} onSelectDoc={handleDocSelect} onLogout={async () => { await backend.logout(); setUser(null); setView('auth'); }} theme={theme} toggleTheme={toggleTheme} />;
         case 'clipboard': 
             return <Clipboard 
+                lang={lang}
                 user={user!} 
-                onBack={() => {
-                    setSelectedDoc(null); // Clear selection when going back
-                    setView('dashboard');
-                }}
+                onBack={() => { setSelectedDoc(null); setView('dashboard'); }} 
                 initialDoc={selectedDoc}
                 onGenerate={async (config) => {
-                    if (user!.generationsUsed >= user!.generationsLimit) {
-                        alert("¡Límite de generaciones alcanzado! Actualiza a un plan superior para continuar.");
+                    if (user!.generationsUsed >= user!.generationsLimit && !user!.customApiKey) {
+                        alert(lang === 'es' ? "Límite de generaciones alcanzado." : "Generation limit reached.");
                         return null;
                     }
                     const doc = await generateDocument(config, user!.name);
@@ -106,27 +70,12 @@ export default function App() {
                 }}
             />;
         case 'profile':
-            return <UserProfile 
-                user={user!} 
-                onBack={() => setView('dashboard')}
-                onNavigate={setView}
-                onUpdateUser={async (u) => { await backend.updateUser(u); setUser(u); }}
-                onLogout={async () => { await backend.logout(); setUser(null); setView('auth'); }}
-            />;
-        case 'admin':
-            return <AdminPanel 
-                user={user!} 
-                onBack={() => setView('dashboard')} 
-            />;
-        case 'wos_chat':
-            return <RunnaAiChat onBack={() => setView('dashboard')} />;
-        default: return <Landing onGetStarted={() => setView('auth')} />;
+            return <UserProfile lang={lang} user={user!} onBack={() => setView('dashboard')} onNavigate={setView} onUpdateUser={async (u) => { await backend.updateUser(u); setUser(u); }} onLogout={async () => { await backend.logout(); setUser(null); setView('auth'); }} />;
+        case 'admin': return <AdminPanel lang={lang} user={user!} onBack={() => setView('dashboard')} />;
+        case 'wos_chat': return <RunnaAiChat lang={lang} user={user!} onBack={() => setView('dashboard')} />;
+        default: return <Landing lang={lang} onSetLang={setLang} onGetStarted={() => setView('auth')} />;
     }
   };
 
-  return (
-    <div className={`min-h-screen ${theme === 'dark' ? 'dark' : ''}`}>
-       {renderView()}
-    </div>
-  );
+  return (<div className={`min-h-screen ${theme === 'dark' ? 'dark' : ''}`}>{renderView()}</div>);
 }
